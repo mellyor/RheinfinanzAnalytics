@@ -34,19 +34,11 @@
             </a>
 
             <div class="header-actions">
-                <a href="#market-charts" class="nav-link-btn">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="20" x2="18" y2="10"></line>
-                        <line x1="12" y1="20" x2="12" y2="4"></line>
-                        <line x1="6" y1="20" x2="6" y2="14"></line>
-                    </svg>
-                    Markt-Charts
-                </a>
-                <a href="#historical-backtest" class="nav-link-btn">
+                <a href="#historical-analytics" class="nav-link-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                     </svg>
-                    Historischer Vergleich
+                    Rendite- &amp; Drawdown-Analyse
                 </a>
                 <a href="#strategy-lab" class="nav-link-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -58,64 +50,24 @@
             </div>
         </header>
 
-        <!-- ==================== SECTION 1: MARKT-CHARTS & INDIZES ==================== -->
-        <section id="market-charts" style="margin-bottom: 40px;">
-            <div class="section-headline">
-                <h2>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
-                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                        <polyline points="17 6 23 6 23 12"></polyline>
-                    </svg>
-                    Tagesaktuelle Marktübersicht & Große Leitindizes
-                </h2>
-                <p>Klicken Sie auf einen Index, um den interaktiven Realtime-Chart aufzurufen und historische Kursverläufe zu analysieren.</p>
-            </div>
-
-            <!-- 8 Quick Index Selector Cards -->
-            <div class="indices-grid" id="indicesGrid">
-                <!-- Dynamisch generiert via app.js -->
-            </div>
-
-            <!-- Main Interactive TradingView Live Chart -->
-            <div class="main-chart-card">
-                <div class="chart-header-bar">
-                    <div class="chart-title-area">
-                        <span class="active-symbol-badge" id="activeSymbolBadge">MSCI World</span>
-                        <div class="chart-title-text">
-                            <h3 id="chartTitleH3">MSCI World – Live Chart & Performance</h3>
-                            <span id="chartTitleSpan">Global Equity (23 Industrieländer) • Ticker: AMEX:URTH</span>
-                        </div>
-                    </div>
-
-                    <div class="chart-tabs" id="chartTabs">
-                        <!-- Dynamisch generiert via app.js -->
-                    </div>
-                </div>
-
-                <!-- TradingView Container -->
-                <div class="tradingview-container-wrapper" id="tradingview_widget_container">
-                    <!-- Widget script injected via app.js -->
-                </div>
-
-                <!-- Instrument Details Card (ISIN, WKN, TER, Return, Volatility, Sharpe, Drawdown) -->
-                <div class="instrument-details-box" id="instrumentDetailsBox">
-                    <!-- Dynamisch generiert via app.js -->
-                </div>
-            </div>
-        </section>
-
-        <!-- ==================== SECTION 2: HISTORISCHER VERGLEICH & BACKTEST ==================== -->
-        <section id="historical-backtest" style="margin-bottom: 50px;">
+        <!-- ==================== SECTION 1: HISTORISCHE RENDITE- & DRAWDOWN-ANALYSE ==================== -->
+        <section id="historical-analytics" style="margin-bottom: 50px;">
             <div class="section-headline">
                 <h2>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                     </svg>
-                    Historischer Rendite- &amp; Drawdown-Vergleich (Vollständige Historie)
+                    Historische Rendite- &amp; Drawdown-Analyse (11 Leitindizes &amp; Strategiefonds)
                 </h2>
-                <p>Vergleichen Sie die tatsächliche historische Wertentwicklung und Drawdowns aller 11 Indizes und Fonds über ihren gesamten verfügbaren Zeitraum.</p>
+                <p>Klicken Sie auf die Indizes, um sie zur Analyse hinzuzufügen oder abzuwählen. Analysieren Sie indexierte Wertentwicklungen (Basis 100) oder historische Unterwasser-Drawdowns über maximale Zeiträume.</p>
             </div>
 
+            <!-- 11 Interactive Toggle Cards Grid -->
+            <div class="indices-grid" id="indicesGrid">
+                <!-- Dynamisch generiert via app.js -->
+            </div>
+
+            <!-- Main Interactive Chart Card -->
             <div class="backtest-card">
                 <!-- Controls bar -->
                 <div class="backtest-controls-bar">
@@ -139,17 +91,29 @@
                     </div>
                 </div>
 
-                <!-- Asset filter chips -->
-                <div class="asset-selector-bar">
-                    <span class="asset-selector-title">Aktive Kurven im Chart:</span>
-                    <div class="asset-chips-group" id="assetChipsGroup">
-                        <!-- Dynamically populated chips -->
+                <!-- Asset Selection Status & Quick Actions Bar -->
+                <div class="chart-selection-bar">
+                    <div class="selection-status-box">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="selectionCounter" style="font-weight: 700; color: var(--navy-dark); font-size: 0.88rem;">1 von 11 Indizes im Chart aktiv</span>
+                            <span style="font-size: 0.76rem; color: var(--text-muted);">(Klicken Sie auf die Karten oben, um weitere Werte hinzuzufügen)</span>
+                        </div>
+                        <div class="selection-quick-actions">
+                            <button class="quick-action-btn" id="btnOnlyMsci">Standard (Nur MSCI World)</button>
+                            <button class="quick-action-btn" id="btnGpoVsWorld">Dr. Beck (GPO) vs. MSCI World</button>
+                            <button class="quick-action-btn" id="btnSelectAll">Alle 11 Indizes</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Comparison Chart Canvas Container -->
+                <!-- Canvas Chart -->
                 <div class="backtest-chart-container">
                     <canvas id="historicalComparisonChart"></canvas>
+                </div>
+
+                <!-- Instrument Details Box (Fokussierter Index / Fonds Steckbrief) -->
+                <div class="instrument-details-box" id="instrumentDetailsBox">
+                    <!-- Populated dynamically via app.js -->
                 </div>
 
                 <!-- Comprehensive Historical Metrics Table -->
@@ -181,7 +145,7 @@
             </div>
         </section>
 
-        <!-- ==================== SECTION 3: STRATEGIE-LABOR & RECHNER ==================== -->
+        <!-- ==================== SECTION 2: STRATEGIE-LABOR & RECHNER ==================== -->
         <section id="strategy-lab">
             <div class="section-headline">
                 <h2>

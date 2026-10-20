@@ -1,31 +1,30 @@
 /**
  * Rheinfinanz Analytics - App Controller & Interactive Visualizations
- * Connects the 11 Core Assets, TradingView Live Chart, Historical Comparison Engine & Strategy Lab
+ * Unifies the 11 Core Assets into a direct Historical Return & Drawdown Analysis Engine and Strategy Lab.
  */
 
-// Asset Color Palette for Charts and UI
+// Asset Color Palette for Charts and UI Accents
 const ASSET_COLORS = {
-    msci_world: '#112D4E',             // Navy Primary
-    ftse_all_world: '#3B82F6',         // Royal Blue
-    msci_small_cap: '#8B5CF6',         // Purple
-    msci_emerging_markets: '#EC4899',  // Rose
-    sp500: '#10B981',                  // Emerald Green
-    euro_geldmarkt: '#64748B',         // Slate Gray
-    gold_eur: '#D4AF37',               // Luxury Gold
-    us_dividend_aristocrats: '#059669',// Deep Green
-    bitcoin_eur: '#F59E0B',            // Amber
-    global_portfolio_one: '#AA8825',   // Dr. Beck Gold/Brown
+    msci_world: '#112D4E',             // Rheinfinanz Navy Primary
+    ftse_all_world: '#2563EB',         // Royal Blue
+    msci_small_cap: '#7C3AED',         // Deep Purple
+    msci_emerging_markets: '#DB2777',  // Vibrant Rose
+    sp500: '#059669',                  // Emerald Green
+    euro_geldmarkt: '#475569',         // Slate Gray
+    gold_eur: '#D4AF37',               // Rheinfinanz Luxury Gold
+    us_dividend_aristocrats: '#0D9488',// Teal Green
+    bitcoin_eur: '#EA580C',            // Deep Amber
+    global_portfolio_one: '#AA8825',   // Dr. Andreas Beck Dark Gold
     fixed_income_one: '#0284C7'        // Sky Blue
 };
 
-// Fallback catalog definition in case file:// protocol restricts external JSON fetch
+// Fallback catalog definition
 const FALLBACK_CATALOG = [
     {
         id: 'msci_world',
         name: 'MSCI World',
         fullName: 'iShares Core MSCI World UCITS ETF (EUR)',
         ticker: 'EUNL.DE',
-        tvSymbol: 'XETR:EUNL',
         category: 'Aktien Welt (Industrieländer)',
         tag: 'Welt-Klassiker',
         isin: 'IE00B4L5Y983',
@@ -40,14 +39,13 @@ const FALLBACK_CATALOG = [
         name: 'FTSE All-World',
         fullName: 'Vanguard FTSE All-World UCITS ETF (EUR)',
         ticker: 'VWCE.DE',
-        tvSymbol: 'XETR:VWCE',
         category: 'Aktien Welt (All-Cap)',
         tag: 'Welt & EM',
         isin: 'IE00BK5BQT80',
         wkn: 'A2PKXG',
         ter: '0,22 % p.a.',
         currency: 'EUR',
-        description: 'Breiteste Marktabdeckung: Deckt ca. 90-95 % der weltweiten investierbaren Marktkapitalisierung ab.',
+        description: 'Breiteste Marktabdeckung: Deckt ca. 90-95 % der weltweiten investierbaren Marktkapitalisierung ab (inkl. Schwellenländer).',
         metrics: { latestPrice: 169.36, dayChangePct: -0.89, cagrPct: 12.60, volatilityPct: 15.93, maxDrawdownPct: -33.43, sharpeRatio: 0.63, return1Y: 20.89, return3Y: 19.82 }
     },
     {
@@ -55,7 +53,6 @@ const FALLBACK_CATALOG = [
         name: 'MSCI World Small Cap',
         fullName: 'iShares MSCI World Small Cap UCITS ETF (EUR)',
         ticker: 'IUSN.DE',
-        tvSymbol: 'XETR:IUSN',
         category: 'Nebenwerte global',
         tag: 'Small-Cap Prämie',
         isin: 'IE00BF4RFH31',
@@ -70,7 +67,6 @@ const FALLBACK_CATALOG = [
         name: 'MSCI Emerging Markets',
         fullName: 'iShares Core MSCI EM IMI UCITS ETF (EUR)',
         ticker: 'IS3N.DE',
-        tvSymbol: 'XETR:IS3N',
         category: 'Schwellenländer',
         tag: 'Wachstumsmärkte',
         isin: 'IE00BKM4GZ66',
@@ -85,7 +81,6 @@ const FALLBACK_CATALOG = [
         name: 'S&P 500',
         fullName: 'S&P 500 Index (US Large Caps)',
         ticker: '^GSPC',
-        tvSymbol: 'SP:SPX',
         category: 'USA Leitmarkt',
         tag: 'US-Leitindex',
         isin: 'US78378X1072',
@@ -100,14 +95,13 @@ const FALLBACK_CATALOG = [
         name: 'Euro Geldmarkt ETF',
         fullName: 'Xtrackers II EUR Overnight Rate Swap UCITS ETF (1C)',
         ticker: 'XEON.DE',
-        tvSymbol: 'XETR:XEON',
         category: 'Geldmarkt & Liquidität',
         tag: 'Risikofreier Zins',
         isin: 'LU0290358497',
         wkn: 'DBX0AN',
         ter: '0,10 % p.a.',
         currency: 'EUR',
-        description: 'Bildet exakt den kurzfristigen Euro-Geldmarktzins (€STR der EZB) ab. Täglich verfügbare Liquidität.',
+        description: 'Bildet exakt den kurzfristigen Euro-Geldmarktzins (€STR der EZB) ab. Täglich verfügbare risikofreie Liquidität.',
         metrics: { latestPrice: 150.53, dayChangePct: 0.01, cagrPct: 0.69, volatilityPct: 0.65, maxDrawdownPct: -4.12, sharpeRatio: 0.12, return1Y: 3.85, return3Y: 3.65 }
     },
     {
@@ -115,14 +109,13 @@ const FALLBACK_CATALOG = [
         name: 'Gold in Euro',
         fullName: 'Xetra-Gold ETC (EUR je Gramm/Unze)',
         ticker: '4GLD.DE',
-        tvSymbol: 'XETR:4GLD',
         category: 'Edelmetalle / Sachwert',
         tag: 'Krisenwährung',
-        isin: 'DE000A0S9GB0',
+        isin: 'DE00A0S9GB0',
         wkn: 'A0S9GB',
         ter: '0,00 % p.a.',
         currency: 'EUR',
-        description: '100 % physisch in Tresoren der Deutschen Börse hinterlegtes Gold, notiert in Euro.',
+        description: '100 % physisch in Tresoren der Deutschen Börse hinterlegtes Gold, gehandelt in Euro.',
         metrics: { latestPrice: 117.88, dayChangePct: 0.62, cagrPct: 9.83, volatilityPct: 14.28, maxDrawdownPct: -37.80, sharpeRatio: 0.51, return1Y: 38.50, return3Y: 21.20 }
     },
     {
@@ -130,14 +123,13 @@ const FALLBACK_CATALOG = [
         name: 'US Dividend Aristocrats',
         fullName: 'SPDR S&P US Dividend Aristocrats UCITS ETF (EUR)',
         ticker: 'SPYD.DE',
-        tvSymbol: 'XETR:SPYD',
         category: 'Dividendenqualität',
         tag: 'Qualitätsdividenden',
         isin: 'IE00B6YX5D40',
         wkn: 'A1JKS0',
         ter: '0,35 % p.a.',
         currency: 'EUR',
-        description: 'Investiert in US-Qualitätsunternehmen mit kontinuierlichen Dividendenerhöhungen seit über 20 Jahren.',
+        description: 'Investiert in US-Qualitätsunternehmen mit kontinuierlichen Dividendenerhöhungen seit über 20 aufeinanderfolgenden Jahren.',
         metrics: { latestPrice: 76.28, dayChangePct: -0.32, cagrPct: 11.84, volatilityPct: 14.10, maxDrawdownPct: -34.80, sharpeRatio: 0.66, return1Y: 24.20, return3Y: 14.50 }
     },
     {
@@ -145,7 +137,6 @@ const FALLBACK_CATALOG = [
         name: 'Bitcoin in Euro',
         fullName: 'Bitcoin Spot (EUR)',
         ticker: 'BTC-EUR',
-        tvSymbol: 'BINANCE:BTCEUR',
         category: 'Digitale Sachwerte / Krypto',
         tag: 'Digitales Gold',
         isin: '-',
@@ -160,14 +151,13 @@ const FALLBACK_CATALOG = [
         name: 'Global Portfolio One',
         fullName: 'GlobalPortfolioOne RT (Dr. Andreas Beck)',
         ticker: '0P0001K82V.F',
-        tvSymbol: 'FWB:D5V0',
         category: 'Multi-Asset Antizyklik',
         tag: 'Dr. Andreas Beck',
         isin: 'AT0000A2B4T3',
         wkn: 'A2PT6U',
         ter: '0,70 % p.a.',
         currency: 'EUR',
-        description: 'Wissenschaftliches Weltportfolio nach Dr. Andreas Beck. Hält eine dynamische Investitionsreserve zur antizyklischen Krisennutzung.',
+        description: 'Wissenschaftliches Weltportfolio nach Dr. Andreas Beck. Hält eine dynamische Investitionsreserve zur antizyklischen Nutzung schwerer Marktkrisen.',
         metrics: { latestPrice: 183.48, dayChangePct: -0.45, cagrPct: 10.49, volatilityPct: 13.82, maxDrawdownPct: -21.40, sharpeRatio: 0.58, return1Y: 19.80, return3Y: 13.90 }
     },
     {
@@ -175,58 +165,57 @@ const FALLBACK_CATALOG = [
         name: 'Fixed Income One',
         fullName: 'Fixed Income One (Dr. Andreas Beck)',
         ticker: '0P0001R2ZE.F',
-        tvSymbol: 'FWB:D5V3',
         category: 'Anleihen & Zinsstrategie',
         tag: 'Dr. Andreas Beck',
         isin: 'AT0000A308J0',
         wkn: 'A3DC11',
         ter: '0,45 % p.a.',
         currency: 'EUR',
-        description: 'Systematische Anleihen- und Zinsstrategie nach Dr. Andreas Beck zur stabilen Ertragsgenerierung und Portfoliodämpfung.',
+        description: 'Systematische defensive Anleihen- und Zinsstrategie nach Dr. Andreas Beck zur stabilen Ertragsgenerierung und Portfoliodämpfung.',
         metrics: { latestPrice: 105.25, dayChangePct: 0.05, cagrPct: 3.36, volatilityPct: 4.15, maxDrawdownPct: -4.80, sharpeRatio: 0.40, return1Y: 4.90, return3Y: 3.30 }
     }
 ];
 
 // App State
-let ASSET_CATALOG = (window.CATALOG_DATA && window.CATALOG_DATA.assets) ? window.CATALOG_DATA.assets : FALLBACK_CATALOG;
-let currentSymbolConfig = ASSET_CATALOG[0];
-let currentStrategyId = 'beck_gpo';
-let customWeights = { ...PRESET_STRATEGIES.custom.weights };
+const ASSET_CATALOG = (window.CATALOG_DATA && window.CATALOG_DATA.assets) ? window.CATALOG_DATA.assets : FALLBACK_CATALOG;
 
-// Historical Backtest State
-let historicalChartInstance = null;
-let activeBacktestAssets = new Set(['msci_world', 'global_portfolio_one', 'sp500', 'gold_eur', 'euro_geldmarkt']);
+// By default: ONLY ONE index is selected (MSCI World) as requested!
+let activeBacktestAssets = new Set(['msci_world']);
+let focusedAssetId = 'msci_world';
 let currentPeriod = 'gpo'; // 'gpo', 'fio', '5y', '10y', 'max'
 let currentChartMode = 'indexed'; // 'indexed' or 'drawdown'
+let historicalChartInstance = null;
 
-// Strategy Lab Charts
+// Strategy Lab State
+let currentStrategyId = 'beck_gpo';
+let customWeights = { ...PRESET_STRATEGIES.custom.weights };
 let trajectoryChartInstance = null;
 let donutChartInstance = null;
 
-// DOM Ready
+// DOM Ready Initialization
 document.addEventListener('DOMContentLoaded', () => {
     initIndexCards();
-    initTradingViewChart(currentSymbolConfig.tvSymbol || currentSymbolConfig.ticker);
-    renderInstrumentDetails(currentSymbolConfig);
     initHistoricalComparisonModule();
+    renderInstrumentDetails(getAssetById(focusedAssetId));
     initStrategyPresets();
     initSliders();
     initCharts();
     updateCalculations();
 });
 
+function getAssetById(id) {
+    return ASSET_CATALOG.find(a => a.id === id) || ASSET_CATALOG[0];
+}
+
 /* ==========================================================================
-   Section 1: TradingView Live Index & Instrument Cards
+   Section 1: 11 Interactive Toggle Cards & Historical Chart
    ========================================================================== */
 
 function initIndexCards() {
     const grid = document.getElementById('indicesGrid');
-    const tabsContainer = document.getElementById('chartTabs');
     if (!grid) return;
 
     grid.innerHTML = '';
-    if (tabsContainer) tabsContainer.innerHTML = '';
-
     ASSET_CATALOG.forEach(item => {
         const metrics = item.metrics || {};
         const isPositive = (metrics.dayChangePct || 0) >= 0;
@@ -237,75 +226,93 @@ function initIndexCards() {
             priceStr = `${(metrics.latestPrice || 0).toLocaleString('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} €`;
         }
 
+        const isActive = activeBacktestAssets.has(item.id);
+        const color = ASSET_COLORS[item.id] || '#112D4E';
+
         const card = document.createElement('div');
-        card.className = `index-card ${item.id === currentSymbolConfig.id ? 'active' : ''}`;
+        card.className = `index-card ${isActive ? 'active' : ''}`;
         card.id = `card-${item.id}`;
+        card.style.setProperty('--card-accent-color', color);
+
         card.innerHTML = `
             <div class="index-header">
                 <div>
                     <div class="index-name">${item.name}</div>
                     <div class="index-region">${item.category}</div>
                 </div>
+                <div class="index-card-toggle" id="toggle-badge-${item.id}">
+                    ${isActive ? '✓ Im Chart' : '+ Dazuschalten'}
+                </div>
+            </div>
+            <div class="index-val-row" style="margin-top: 4px;">
+                <span class="index-value">${priceStr}</span>
                 <span class="index-change-pill ${isPositive ? 'pill-up' : 'pill-down'}">${changeStr}</span>
             </div>
-            <div class="index-val-row">
-                <span class="index-value">${priceStr}</span>
-                <span style="font-size: 0.72rem; font-weight: 600; color: var(--gold-dark);">${item.tag}</span>
-            </div>
-            <div style="margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-between;">
-                <span>CAGR: <strong>${metrics.cagrPct ? metrics.cagrPct + '%' : '-'}</strong></span>
-                <span>MaxDD: <strong style="color: var(--red-trend);">${metrics.maxDrawdownPct ? metrics.maxDrawdownPct + '%' : '-'}</strong></span>
+            <div style="margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-subtle); padding-top: 6px;">
+                <span style="font-weight: 600; color: var(--gold-dark);">${item.tag}</span>
+                <span>CAGR: <strong style="color: var(--navy-dark);">${metrics.cagrPct ? metrics.cagrPct + '%' : '-'}</strong></span>
             </div>
         `;
 
         card.addEventListener('click', () => {
-            selectIndex(item);
+            toggleAsset(item.id);
         });
 
         grid.appendChild(card);
+    });
 
-        // Quick Tabs
-        if (tabsContainer) {
-            const tabBtn = document.createElement('button');
-            tabBtn.className = `chart-tab-btn ${item.id === currentSymbolConfig.id ? 'active' : ''}`;
-            tabBtn.id = `tab-${item.id}`;
-            tabBtn.textContent = item.name;
-            tabBtn.addEventListener('click', () => {
-                selectIndex(item);
-            });
-            tabsContainer.appendChild(tabBtn);
+    updateSelectionCounter();
+}
+
+function toggleAsset(assetId) {
+    if (activeBacktestAssets.has(assetId)) {
+        // Only allow unselecting if at least one other asset remains active
+        if (activeBacktestAssets.size > 1) {
+            activeBacktestAssets.delete(assetId);
+            // If the unselected asset was focused, switch focus to another active asset
+            if (focusedAssetId === assetId) {
+                focusedAssetId = Array.from(activeBacktestAssets)[0];
+            }
+        } else {
+            // Keep it active, but re-focus
+            focusedAssetId = assetId;
+        }
+    } else {
+        activeBacktestAssets.add(assetId);
+        focusedAssetId = assetId;
+    }
+
+    syncCardStates();
+    updateSelectionCounter();
+    renderInstrumentDetails(getAssetById(focusedAssetId));
+    updateHistoricalChart();
+}
+
+function syncCardStates() {
+    ASSET_CATALOG.forEach(item => {
+        const card = document.getElementById(`card-${item.id}`);
+        const badge = document.getElementById(`toggle-badge-${item.id}`);
+        const isActive = activeBacktestAssets.has(item.id);
+
+        if (card) {
+            if (isActive) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        }
+        if (badge) {
+            badge.textContent = isActive ? '✓ Im Chart' : '+ Dazuschalten';
         }
     });
 }
 
-function selectIndex(item) {
-    currentSymbolConfig = item;
-
-    // Update active card styling
-    document.querySelectorAll('.index-card').forEach(c => c.classList.remove('active'));
-    const activeCard = document.getElementById(`card-${item.id}`);
-    if (activeCard) activeCard.classList.add('active');
-
-    // Update active tab styling
-    document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
-    const activeTab = document.getElementById(`tab-${item.id}`);
-    if (activeTab) activeTab.classList.add('active');
-
-    // Update badge and title
-    const symbolBadge = document.getElementById('activeSymbolBadge');
-    if (symbolBadge) symbolBadge.textContent = item.name;
-
-    const titleH3 = document.getElementById('chartTitleH3');
-    if (titleH3) titleH3.textContent = `${item.fullName || item.name} – Live Chart`;
-
-    const titleSpan = document.getElementById('chartTitleSpan');
-    if (titleSpan) titleSpan.textContent = `${item.category} • WKN: ${item.wkn || '-'} • ISIN: ${item.isin || '-'} • TradingView: ${item.tvSymbol || item.ticker}`;
-
-    // Reload TradingView Chart Widget
-    initTradingViewChart(item.tvSymbol || item.ticker);
-
-    // Update instrument details box
-    renderInstrumentDetails(item);
+function updateSelectionCounter() {
+    const counter = document.getElementById('selectionCounter');
+    if (counter) {
+        const count = activeBacktestAssets.size;
+        counter.textContent = `${count} von 11 Indizes im Chart aktiv`;
+    }
 }
 
 function renderInstrumentDetails(item) {
@@ -314,8 +321,17 @@ function renderInstrumentDetails(item) {
 
     const m = item.metrics || {};
     const priceFormatted = `${(m.latestPrice || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${item.currency === 'USD' ? '$' : '€'}`;
+    const color = ASSET_COLORS[item.id] || '#112D4E';
 
     box.innerHTML = `
+        <div class="inst-metric-item" style="grid-column: 1 / -1; display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 4px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: ${color}; display: inline-block;"></span>
+                <strong style="font-size: 1.05rem; color: var(--navy-dark); font-family: var(--font-heading);">${item.fullName || item.name}</strong>
+                <span style="font-size: 0.72rem; background: rgba(212, 175, 55, 0.15); border: 1px solid var(--gold); color: var(--gold-dark); padding: 2px 7px; border-radius: 4px; font-weight: 700;">${item.tag}</span>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Aktueller Detail-Steckbrief</span>
+        </div>
         <div class="inst-metric-item">
             <span class="inst-metric-label">Aktueller Kurs</span>
             <span class="inst-metric-val" style="color: var(--navy-primary);">${priceFormatted}</span>
@@ -353,54 +369,48 @@ function renderInstrumentDetails(item) {
     `;
 }
 
-function initTradingViewChart(symbol) {
-    const container = document.getElementById('tradingview_widget_container');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    const widgetDiv = document.createElement('div');
-    widgetDiv.className = 'tradingview-widget-container__widget';
-    widgetDiv.style.height = '100%';
-    widgetDiv.style.width = '100%';
-    container.appendChild(widgetDiv);
-
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-        "autosize": true,
-        "symbol": symbol,
-        "interval": "D",
-        "timezone": "Europe/Berlin",
-        "theme": "light",
-        "style": "1", // 1 = Candles, 2 = Line, 3 = Area
-        "locale": "de_DE",
-        "enable_publishing": false,
-        "backgroundColor": "#FFFFFF",
-        "gridColor": "rgba(0, 0, 0, 0.05)",
-        "hide_top_toolbar": false,
-        "hide_legend": false,
-        "save_image": false,
-        "calendar": false,
-        "hide_volume": true,
-        "support_host": "https://www.tradingview.com"
-    });
-
-    container.appendChild(script);
-}
-
-/* ==========================================================================
-   Section 2: Historical Comparison & Backtest Engine
-   ========================================================================== */
-
 function initHistoricalComparisonModule() {
     initTimeframePills();
     initModePills();
-    initAssetChips();
+    initQuickActionButtons();
     renderHistoricalTable();
     initHistoricalChart();
+}
+
+function initQuickActionButtons() {
+    const btnMsci = document.getElementById('btnOnlyMsci');
+    if (btnMsci) {
+        btnMsci.addEventListener('click', () => {
+            activeBacktestAssets = new Set(['msci_world']);
+            focusedAssetId = 'msci_world';
+            syncCardStates();
+            updateSelectionCounter();
+            renderInstrumentDetails(getAssetById(focusedAssetId));
+            updateHistoricalChart();
+        });
+    }
+
+    const btnGpo = document.getElementById('btnGpoVsWorld');
+    if (btnGpo) {
+        btnGpo.addEventListener('click', () => {
+            activeBacktestAssets = new Set(['msci_world', 'global_portfolio_one']);
+            focusedAssetId = 'global_portfolio_one';
+            syncCardStates();
+            updateSelectionCounter();
+            renderInstrumentDetails(getAssetById(focusedAssetId));
+            updateHistoricalChart();
+        });
+    }
+
+    const btnAll = document.getElementById('btnSelectAll');
+    if (btnAll) {
+        btnAll.addEventListener('click', () => {
+            activeBacktestAssets = new Set(ASSET_CATALOG.map(a => a.id));
+            syncCardStates();
+            updateSelectionCounter();
+            updateHistoricalChart();
+        });
+    }
 }
 
 function initTimeframePills() {
@@ -427,40 +437,6 @@ function initModePills() {
     });
 }
 
-function initAssetChips() {
-    const group = document.getElementById('assetChipsGroup');
-    if (!group) return;
-
-    group.innerHTML = '';
-    ASSET_CATALOG.forEach(item => {
-        const chip = document.createElement('div');
-        const isActive = activeBacktestAssets.has(item.id);
-        const color = ASSET_COLORS[item.id] || '#112D4E';
-
-        chip.className = `asset-chip ${isActive ? 'active' : ''}`;
-        chip.style.setProperty('--chip-color', color);
-        chip.innerHTML = `
-            <span class="asset-chip-dot" style="background: ${color};"></span>
-            <span>${item.name}</span>
-        `;
-
-        chip.addEventListener('click', () => {
-            if (activeBacktestAssets.has(item.id)) {
-                if (activeBacktestAssets.size > 1) {
-                    activeBacktestAssets.delete(item.id);
-                    chip.classList.remove('active');
-                }
-            } else {
-                activeBacktestAssets.add(item.id);
-                chip.classList.add('active');
-            }
-            updateHistoricalChart();
-        });
-
-        group.appendChild(chip);
-    });
-}
-
 function renderHistoricalTable() {
     const tbody = document.getElementById('historicalComparisonTableBody');
     if (!tbody) return;
@@ -481,12 +457,20 @@ function renderHistoricalTable() {
         const sharpeStr = m.sharpeRatio !== null && m.sharpeRatio !== undefined ? m.sharpeRatio.toFixed(2) : '-';
 
         let priceStr = `${(m.latestPrice || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${item.currency === 'USD' ? '$' : '€'}`;
+        const color = ASSET_COLORS[item.id] || '#112D4E';
 
         const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.title = 'Klicken, um diesen Index im Chart ein- oder auszublenden';
         tr.innerHTML = `
             <td>
-                <div style="font-weight: 700; color: var(--navy-dark);">${item.name}</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">${item.isin || item.ticker}</div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${color};"></span>
+                    <div>
+                        <div style="font-weight: 700; color: var(--navy-dark);">${item.name}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">${item.isin || item.ticker}</div>
+                    </div>
+                </div>
             </td>
             <td><span style="font-size: 0.74rem; background: #F1F5F9; padding: 2px 7px; border-radius: 4px;">${item.category}</span></td>
             <td style="font-weight: 600;">${priceStr}</td>
@@ -499,6 +483,11 @@ function renderHistoricalTable() {
             <td class="metric-negative">${ddStr}</td>
             <td style="font-weight: 600;">${sharpeStr}</td>
         `;
+
+        tr.addEventListener('click', () => {
+            toggleAsset(item.id);
+        });
+
         tbody.appendChild(tr);
     });
 }
@@ -541,9 +530,9 @@ function initHistoricalChart() {
                         label: function(context) {
                             const val = context.parsed.y;
                             if (currentChartMode === 'drawdown') {
-                                return ` ${context.dataset.label}: ${val.toFixed(2)} %`;
+                                return ` ${context.dataset.label}: ${val.toFixed(2)} % Drawdown`;
                             } else {
-                                return ` ${context.dataset.label}: ${val.toFixed(1)} (Index)`;
+                                return ` ${context.dataset.label}: ${val.toFixed(1)} (Index Basis 100)`;
                             }
                         }
                     }
@@ -564,7 +553,7 @@ function initHistoricalChart() {
                         color: '#0A192F',
                         font: { size: 11, weight: 'bold' },
                         callback: function(value) {
-                            return currentChartMode === 'drawdown' ? `${value}%` : value;
+                            return currentChartMode === 'drawdown' ? `${value} %` : value;
                         }
                     }
                 }
@@ -598,7 +587,6 @@ function updateHistoricalChart() {
         d.setFullYear(now.getFullYear() - 10);
         targetStartDate = d.toISOString().split('T')[0];
     } else if (currentPeriod === 'max') {
-        // Earliest date of active assets
         targetStartDate = '1970-01-01';
     }
 
@@ -620,18 +608,19 @@ function updateHistoricalChart() {
     const sortedDates = Array.from(dateSet).sort();
     if (sortedDates.length === 0) return;
 
-    // Downsample if more than 350 dates to ensure smooth performance
-    const step = Math.max(1, Math.floor(sortedDates.length / 300));
+    // Downsample if more than 300 dates to ensure instant 60fps rendering
+    const step = Math.max(1, Math.floor(sortedDates.length / 280));
     const sampledDates = [];
     for (let i = 0; i < sortedDates.length; i += step) {
         sampledDates.push(sortedDates[i]);
     }
-    // Always include the latest date
+    // Always include latest date
     if (sampledDates[sampledDates.length - 1] !== sortedDates[sortedDates.length - 1]) {
         sampledDates.push(sortedDates[sortedDates.length - 1]);
     }
 
     const datasets = [];
+    const isSingleAsset = activeBacktestAssets.size === 1;
 
     activeBacktestAssets.forEach(assetId => {
         const asset = historyData[assetId];
@@ -642,7 +631,6 @@ function updateHistoricalChart() {
         const priceMap = new Map();
         series.forEach(pt => priceMap.set(pt[0], pt[1]));
 
-        // Fill sampled points
         const basePrice = series[0][1];
         let peak = basePrice;
         let lastKnown = basePrice;
@@ -667,12 +655,26 @@ function updateHistoricalChart() {
 
         const color = ASSET_COLORS[assetId] || '#112D4E';
 
+        // Enhanced single asset presentation with soft background gradient
+        let bgColor = 'transparent';
+        let fill = false;
+        if (isSingleAsset) {
+            if (currentChartMode === 'drawdown') {
+                bgColor = 'rgba(239, 68, 68, 0.08)';
+                fill = true;
+            } else {
+                bgColor = 'rgba(17, 45, 78, 0.06)';
+                fill = true;
+            }
+        }
+
         datasets.push({
             label: asset.name,
             data: dataPoints,
             borderColor: color,
-            backgroundColor: color,
-            borderWidth: (assetId === 'msci_world' || assetId === 'global_portfolio_one') ? 2.8 : 2.0,
+            backgroundColor: bgColor,
+            fill: fill,
+            borderWidth: isSingleAsset ? 3.0 : 2.2,
             pointRadius: 0,
             pointHoverRadius: 5,
             tension: 0.15
@@ -685,7 +687,7 @@ function updateHistoricalChart() {
 }
 
 /* ==========================================================================
-   Section 3: Strategy Lab & Portfolio Calculator Controller
+   Section 2: Strategy Lab & Portfolio Calculator Controller
    ========================================================================== */
 
 function initStrategyPresets() {
@@ -735,13 +737,6 @@ function selectStrategy(id) {
         customWeights = { ...strat.weights };
         updateSliderDisplays();
     }
-
-    // Update preset description
-    const descEl = document.getElementById('selectedStrategyDesc');
-    if (descEl) descEl.textContent = strat.description;
-
-    const nameEl = document.getElementById('selectedStrategyName');
-    if (nameEl) nameEl.textContent = strat.name;
 
     updateCalculations();
 }
