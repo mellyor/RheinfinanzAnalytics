@@ -77,15 +77,15 @@ ASSETS_METADATA = [
     {
         "id": "sp500",
         "name": "S&P 500",
-        "fullName": "S&P 500 Index (US Large Caps)",
-        "ticker": "^GSPC",
-        "tvSymbol": "SP:SPX",
+        "fullName": "iShares Core S&P 500 UCITS ETF (EUR)",
+        "ticker": "SXR8.DE",
+        "tvSymbol": "XETR:SXR8",
         "category": "USA Leitmarkt",
-        "tag": "US-Leitindex",
-        "isin": "US78378X1072",
-        "wkn": "A0AET0",
-        "ter": "Index (0 %)",
-        "description": "Der führende Leitindex der weltweiten Leitökonomie. Beinhaltet die 500 wertvollsten börsennotierten US-Unternehmen (Historie seit 1970 verfügbar)."
+        "tag": "US-Leitindex (EUR)",
+        "isin": "IE00B5BMR087",
+        "wkn": "A0YEDG",
+        "ter": "0,07 % p.a.",
+        "description": "Führender US-Leitindex der 500 wertvollsten Unternehmen in Euro inkl. automatischer Dividenden-Reinvestition (Total Return). Historie bis 1970 zurückgerechnet."
     },
     {
         "id": "euro_geldmarkt",
@@ -167,7 +167,7 @@ ASSETS_METADATA = [
     }
 ]
 
-def fetch_ticker_data(ticker):
+def fetch_raw_ticker(ticker):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
     url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?period1=0&period2=2000000000&interval=1d'
     req = urllib.request.Request(url, headers=headers)
@@ -186,13 +186,11 @@ def fetch_ticker_data(ticker):
         
     cleaned_series = []
     for ts, c, ac in zip(timestamps, closes, adj_closes):
-        # Use adjusted close where sensible, fallback to close
         price = ac if (ac is not None and not math.isnan(ac) and ac > 0) else c
         if price is not None and not math.isnan(price) and price > 0:
             dt_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
             cleaned_series.append([dt_str, round(float(price), 4)])
             
-    # Sort chronologically & deduplicate dates
     seen = set()
     deduped = []
     for dt, p in cleaned_series:
@@ -202,6 +200,30 @@ def fetch_ticker_data(ticker):
             
     deduped.sort(key=lambda x: x[0])
     return deduped, meta
+
+def fetch_ticker_data(ticker):
+    if ticker == 'SXR8.DE':
+        # Primary: SXR8.DE (iShares Core S&P 500 UCITS ETF in EUR)
+        series_etf, meta = fetch_raw_ticker('SXR8.DE')
+        meta['currency'] = 'EUR'
+        # Backfill pre-2010 with ^GSPC scaled to ETF price on inception date
+        try:
+            series_spx, _ = fetch_raw_ticker('^GSPC')
+            spx_dict = dict(series_spx)
+            first_dt, first_val = series_etf[0]
+            if first_dt in spx_dict:
+                scale = first_val / spx_dict[first_dt]
+                stitched = []
+                for dt, p in series_spx:
+                    if dt < first_dt:
+                        stitched.append([dt, round(p * scale, 4)])
+                stitched.extend(series_etf)
+                return stitched, meta
+        except Exception as e:
+            print(f" (backfill failed: {e})", end="")
+        return series_etf, meta
+    else:
+        return fetch_raw_ticker(ticker)
 
 def compute_metrics(series, rf_rate=0.025):
     """Computes return, volatility, max drawdown, and Sharpe ratio."""

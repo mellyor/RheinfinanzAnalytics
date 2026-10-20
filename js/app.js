@@ -79,16 +79,16 @@ const FALLBACK_CATALOG = [
     {
         id: 'sp500',
         name: 'S&P 500',
-        fullName: 'S&P 500 Index (US Large Caps)',
-        ticker: '^GSPC',
+        fullName: 'iShares Core S&P 500 UCITS ETF (EUR)',
+        ticker: 'SXR8.DE',
         category: 'USA Leitmarkt',
-        tag: 'US-Leitindex',
-        isin: 'US78378X1072',
-        wkn: 'A0AET0',
-        ter: 'Index (0 %)',
-        currency: 'USD',
-        description: 'Führender US-Leitindex der 500 wertvollsten börsennotierten Unternehmen (Historie seit 1970).',
-        metrics: { latestPrice: 7690.73, dayChangePct: 0.41, cagrPct: 8.08, volatilityPct: 16.02, maxDrawdownPct: -56.78, sharpeRatio: 0.38, return1Y: 34.12, return3Y: 26.50 }
+        tag: 'US-Leitindex (EUR)',
+        isin: 'IE00B5BMR087',
+        wkn: 'A0YEDG',
+        ter: '0,07 % p.a.',
+        currency: 'EUR',
+        description: 'Führender US-Leitindex der 500 wertvollsten Unternehmen in Euro inkl. automatischer Dividenden-Reinvestition (Total Return). Historie bis 1970 zurückgerechnet.',
+        metrics: { latestPrice: 738.96, dayChangePct: 0.15, cagrPct: 8.36, volatilityPct: 15.65, maxDrawdownPct: -54.20, sharpeRatio: 0.38, return1Y: 22.00, return3Y: 20.91, return5Y: 13.35 }
     },
     {
         id: 'euro_geldmarkt',
