@@ -160,8 +160,8 @@ ASSETS_METADATA = [
         "tvSymbol": "FWB:D5V3",
         "category": "Anleihen & Zinsstrategie",
         "tag": "Dr. Andreas Beck",
-        "isin": "AT0000A308J0",
-        "wkn": "A3DC11",
+        "isin": "AT0000A347S9",
+        "wkn": "A3EEYP",
         "ter": "0,45 % p.a.",
         "description": "Systematischer Rentenfonds nach Dr. Andreas Beck. Investiert breit in defensive Staats- und Unternehmensanleihen höchster Bonität zur Ertragsgenerierung und Portfoliostabilisierung."
     }
