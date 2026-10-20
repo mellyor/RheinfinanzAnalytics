@@ -204,6 +204,42 @@ let satelliteItems = [
 let extraDepositsList = [];
 let withdrawalsList = [];
 
+// Hebel- & 200-SMA Trendfolge Strategie State
+let leverageUnderlyingId = 'sp500';
+let leverageFactor = 2.0;
+let leverageTer = 0.0060; // 0.60 % p.a.
+let leverageUseSma = true;
+let leverageOrderFee = 1.00; // 1.00 € pro Switch
+
+// SMA 200 Calculation Cache (Rolling calculation over full series from 1970)
+const SMA200_CACHE = new Map();
+
+function getSMA200Map(assetId) {
+    if (SMA200_CACHE.has(assetId)) {
+        return SMA200_CACHE.get(assetId);
+    }
+    const historyData = window.HISTORY_DATA ? window.HISTORY_DATA.assets : {};
+    const asset = historyData[assetId];
+    const map = new Map();
+    if (!asset || !asset.series || asset.series.length < 200) {
+        SMA200_CACHE.set(assetId, map);
+        return map;
+    }
+    const series = asset.series;
+    let sum = 0;
+    for (let i = 0; i < 200; i++) {
+        sum += series[i][1];
+    }
+    map.set(series[199][0], sum / 200.0);
+
+    for (let i = 200; i < series.length; i++) {
+        sum += series[i][1] - series[i - 200][1];
+        map.set(series[i][0], sum / 200.0);
+    }
+    SMA200_CACHE.set(assetId, map);
+    return map;
+}
+
 // Multi-Asset Strategy Presets for Section 2 Backtest
 const BACKTEST_STRATEGIES = {
     strat_beck_80_20: {
@@ -966,10 +1002,11 @@ function initBacktestInputs() {
 }
 
 function initCoreSatelliteControls() {
-    // Mode tabs (Preset vs Core-Satellite)
+    // Mode tabs (Preset vs Core-Satellite vs Hebel & SMA)
     const tabs = document.querySelectorAll('#portfolioModeTabs .portfolio-mode-tab');
     const presetContainer = document.getElementById('presetPortfolioContainer');
     const coreSatContainer = document.getElementById('coreSatelliteContainer');
+    const leverageContainer = document.getElementById('leverageContainer');
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -977,13 +1014,12 @@ function initCoreSatelliteControls() {
             tab.classList.add('active');
             backtestPortfolioMode = tab.getAttribute('data-mode');
 
+            if (presetContainer) presetContainer.style.display = backtestPortfolioMode === 'preset' ? 'block' : 'none';
+            if (coreSatContainer) coreSatContainer.style.display = backtestPortfolioMode === 'coresatellite' ? 'block' : 'none';
+            if (leverageContainer) leverageContainer.style.display = backtestPortfolioMode === 'leverage' ? 'block' : 'none';
+
             if (backtestPortfolioMode === 'coresatellite') {
-                if (presetContainer) presetContainer.style.display = 'none';
-                if (coreSatContainer) coreSatContainer.style.display = 'block';
                 renderSatellitesList();
-            } else {
-                if (presetContainer) presetContainer.style.display = 'block';
-                if (coreSatContainer) coreSatContainer.style.display = 'none';
             }
             runHistoricalBacktest();
         });
@@ -1031,6 +1067,70 @@ function initCoreSatelliteControls() {
             });
 
             renderSatellitesList();
+            runHistoricalBacktest();
+        });
+    }
+
+    // Hebel- & 200-SMA Trendfolge Controls
+    const selUnderlying = document.getElementById('selectLeverageUnderlying');
+    if (selUnderlying) {
+        selUnderlying.addEventListener('change', (e) => {
+            leverageUnderlyingId = e.target.value;
+            runHistoricalBacktest();
+        });
+    }
+
+    const inpFactor = document.getElementById('inputLeverageFactor');
+    const inpTer = document.getElementById('inputLeverageTer');
+    const pills = document.querySelectorAll('#leverageQuickPills .lev-pill');
+
+    if (inpFactor) {
+        inpFactor.addEventListener('input', (e) => {
+            leverageFactor = Math.max(1.0, parseFloat(e.target.value) || 1.0);
+            pills.forEach(p => {
+                const pLev = parseFloat(p.getAttribute('data-lev'));
+                p.classList.toggle('active', Math.abs(pLev - leverageFactor) < 0.05);
+            });
+            runHistoricalBacktest();
+        });
+    }
+
+    pills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            pills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            const lev = parseFloat(pill.getAttribute('data-lev'));
+            const ter = parseFloat(pill.getAttribute('data-ter'));
+            leverageFactor = lev;
+            if (inpFactor) inpFactor.value = lev;
+            if (inpTer) {
+                inpTer.value = ter;
+                leverageTer = ter / 100.0;
+            }
+            runHistoricalBacktest();
+        });
+    });
+
+    if (inpTer) {
+        inpTer.addEventListener('input', (e) => {
+            const val = Math.max(0, parseFloat(e.target.value) || 0);
+            leverageTer = val / 100.0;
+            runHistoricalBacktest();
+        });
+    }
+
+    const checkSma = document.getElementById('checkLeverageSma');
+    if (checkSma) {
+        checkSma.addEventListener('change', (e) => {
+            leverageUseSma = e.target.checked;
+            runHistoricalBacktest();
+        });
+    }
+
+    const inpFee = document.getElementById('inputOrderFee');
+    if (inpFee) {
+        inpFee.addEventListener('input', (e) => {
+            leverageOrderFee = Math.max(0, parseFloat(e.target.value) || 0);
             runHistoricalBacktest();
         });
     }
@@ -1174,6 +1274,14 @@ function getEarliestDateForCurrentSelection() {
     const historyData = window.HISTORY_DATA ? window.HISTORY_DATA.assets : {};
     if (!historyData) return '2019-10-20';
 
+    if (backtestPortfolioMode === 'leverage') {
+        const underlying = historyData[leverageUnderlyingId || 'sp500'];
+        if (underlying && underlying.series && underlying.series.length >= 200) {
+            return underlying.series[199][0]; // For S&P 500, ~1970-10-15
+        }
+        return '1970-10-15';
+    }
+
     let requiredAssets = [];
 
     if (backtestPortfolioMode === 'coresatellite') {
@@ -1272,6 +1380,431 @@ function initBacktestChart() {
 }
 
 /**
+ * Hebel- & 200-SMA Trendfolge Backtest Engine
+ * Simulates daily leveraged ETF compounding, 200-day rolling SMA signal next-day execution,
+ * money-market switching, order fees, and cash flows.
+ */
+function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate, extraDeposits, withdrawals) {
+    const underlyingId = leverageUnderlyingId || 'sp500';
+    const cashId = 'euro_geldmarkt';
+
+    const underlyingAsset = historyData[underlyingId];
+    const cashAsset = historyData[cashId];
+
+    if (!underlyingAsset || !cashAsset || !underlyingAsset.series || !cashAsset.series) return;
+
+    const underlyingSeries = underlyingAsset.series;
+    const cashSeries = cashAsset.series;
+    const smaMap = getSMA200Map(underlyingId);
+
+    const underlyingPriceMap = new Map(underlyingSeries);
+    const cashPriceMap = new Map(cashSeries);
+
+    // Need at least 200 trading days prior so SMA-200 is available on start date
+    const earliestDate = underlyingSeries.length >= 200 ? underlyingSeries[199][0] : underlyingSeries[0][0];
+    let userStartDate = inpStart.value || '2019-10-20';
+    if (userStartDate < earliestDate) {
+        userStartDate = earliestDate;
+        inpStart.value = earliestDate;
+    }
+
+    // Filter trading dates from userStartDate onwards where both assets & SMA are available
+    const tradingDates = underlyingSeries
+        .map(pt => pt[0])
+        .filter(dt => dt >= userStartDate && smaMap.has(dt));
+
+    if (tradingDates.length === 0) return;
+
+    // Determine initial state based on previous trading day's close vs SMA
+    const idx0 = underlyingSeries.findIndex(pt => pt[0] === tradingDates[0]);
+    const prevPt = (idx0 > 0) ? underlyingSeries[idx0 - 1] : underlyingSeries[0];
+    const prevClose0 = prevPt[1];
+    const prevSma0 = smaMap.get(prevPt[0]) || prevClose0;
+
+    let currentState = leverageUseSma ? (prevClose0 >= prevSma0 ? 'LEVERAGE' : 'MONEY_MARKET') : 'LEVERAGE';
+
+    let valA = initialCapital;
+    let valB = initialCapital;
+    let valC = initialCapital;
+
+    let cumulativeDeposits = initialCapital;
+    let cumulativeWithdrawals = 0;
+    let totalMonthlySavings = 0;
+    let monthlySavingsCount = 0;
+    let totalExtraDeposits = 0;
+    let extraDepositsCount = 0;
+    let totalWithdrawals = 0;
+    let withdrawalsCount = 0;
+
+    let switchesCount = 0;
+    let totalFeesPaid = 0;
+    let daysInLeverage = 0;
+    let daysInMoneyMarket = 0;
+
+    const cashFlowsA = [];
+    const cashFlowsB = [];
+    const cashFlowsC = [];
+
+    if (initialCapital > 0) {
+        cashFlowsA.push({ date: tradingDates[0], amount: -initialCapital });
+        cashFlowsB.push({ date: tradingDates[0], amount: -initialCapital });
+        cashFlowsC.push({ date: tradingDates[0], amount: -initialCapital });
+    }
+
+    const timelineLabels = [tradingDates[0]];
+    const timelineValA = [Math.round(valA)];
+    const timelineValB = [Math.round(valB)];
+    const timelineValC = [Math.round(valC)];
+    const timelineNetDeposits = [Math.round(initialCapital)];
+
+    let peakA = valA;
+    let maxDdA = 0;
+    let peakB = valB;
+    let maxDdB = 0;
+
+    let lastKnownMonth = tradingDates[0].substring(0, 7);
+    let lastKnownCashPrice = cashPriceMap.get(tradingDates[0]) || 100;
+
+    for (let t = 1; t < tradingDates.length; t++) {
+        const dt = tradingDates[t];
+        const prevDt = tradingDates[t - 1];
+
+        // 1. Monthly Savings (1st trading day of new month)
+        const currentMonth = dt.substring(0, 7);
+        if (lastKnownMonth && currentMonth !== lastKnownMonth && monthlyRate > 0) {
+            valA += monthlyRate;
+            valB += monthlyRate;
+            valC += monthlyRate;
+            cumulativeDeposits += monthlyRate;
+            totalMonthlySavings += monthlyRate;
+            monthlySavingsCount++;
+            cashFlowsA.push({ date: dt, amount: -monthlyRate });
+            cashFlowsB.push({ date: dt, amount: -monthlyRate });
+            cashFlowsC.push({ date: dt, amount: -monthlyRate });
+        }
+        lastKnownMonth = currentMonth;
+
+        // 2. Extra Deposits
+        extraDeposits.forEach(dep => {
+            if (dep.date === dt) {
+                valA += dep.amount;
+                valB += dep.amount;
+                valC += dep.amount;
+                cumulativeDeposits += dep.amount;
+                totalExtraDeposits += dep.amount;
+                extraDepositsCount++;
+                cashFlowsA.push({ date: dt, amount: -dep.amount });
+                cashFlowsB.push({ date: dt, amount: -dep.amount });
+                cashFlowsC.push({ date: dt, amount: -dep.amount });
+            }
+        });
+
+        // 3. Withdrawals
+        withdrawals.forEach(w => {
+            if (w.date === dt) {
+                const actA = Math.min(w.amount, valA);
+                const actB = Math.min(w.amount, valB);
+                const actC = Math.min(w.amount, valC);
+                valA = Math.max(0, valA - actA);
+                valB = Math.max(0, valB - actB);
+                valC = Math.max(0, valC - actC);
+                cumulativeWithdrawals += actA;
+                totalWithdrawals += actA;
+                withdrawalsCount++;
+                cashFlowsA.push({ date: dt, amount: +actA });
+                cashFlowsB.push({ date: dt, amount: +actB });
+                cashFlowsC.push({ date: dt, amount: +actC });
+            }
+        });
+
+        // 4. Signal check from yesterday's close (prevDt)
+        const prevClose = underlyingPriceMap.get(prevDt);
+        const prevSma = smaMap.get(prevDt) || prevClose;
+        const targetState = leverageUseSma ? (prevClose >= prevSma ? 'LEVERAGE' : 'MONEY_MARKET') : 'LEVERAGE';
+
+        if (targetState !== currentState) {
+            if (leverageOrderFee > 0 && valA > 0) {
+                valA = Math.max(0, valA - leverageOrderFee);
+                totalFeesPaid += leverageOrderFee;
+            }
+            switchesCount++;
+            currentState = targetState;
+        }
+
+        // 5. Daily returns for day t
+        const currClose = underlyingPriceMap.get(dt);
+        const r_spx = (currClose - prevClose) / prevClose;
+        const r_lev = Math.max(-0.999, leverageFactor * r_spx - (leverageTer / 252.0));
+
+        const prevCash = cashPriceMap.get(prevDt) || lastKnownCashPrice;
+        const currCash = cashPriceMap.get(dt) || prevCash;
+        lastKnownCashPrice = currCash;
+        const r_cash = (currCash - prevCash) / prevCash;
+
+        // Apply return to Strategy A
+        if (currentState === 'LEVERAGE') {
+            valA *= (1.0 + r_lev);
+            daysInLeverage++;
+        } else {
+            valA *= (1.0 + r_cash);
+            daysInMoneyMarket++;
+        }
+
+        // Apply return to Buy & Hold Leveraged B
+        valB *= (1.0 + r_lev);
+
+        // Apply return to 1x Buy & Hold C (TER 0.07%)
+        valC *= (1.0 + r_spx - (0.0007 / 252.0));
+
+        const netInvested = cumulativeDeposits - cumulativeWithdrawals;
+
+        // Drawdown tracking A
+        if (valA > peakA) peakA = valA;
+        if (peakA > 0) {
+            const ddA = ((valA - peakA) / peakA) * 100;
+            if (ddA < maxDdA) maxDdA = ddA;
+        }
+
+        // Drawdown tracking B
+        if (valB > peakB) peakB = valB;
+        if (peakB > 0) {
+            const ddB = ((valB - peakB) / peakB) * 100;
+            if (ddB < maxDdB) maxDdB = ddB;
+        }
+
+        timelineLabels.push(dt);
+        timelineValA.push(valA);
+        timelineValB.push(valB);
+        timelineValC.push(valC);
+        timelineNetDeposits.push(netInvested);
+    }
+
+    const finalDate = tradingDates[tradingDates.length - 1];
+    const finalNetInvested = cumulativeDeposits - cumulativeWithdrawals;
+    const finalProfitA = valA - finalNetInvested;
+    const finalProfitPctA = finalNetInvested > 0 ? (finalProfitA / finalNetInvested) * 100 : 0;
+    const finalMultiplierA = finalNetInvested > 0 ? (valA / finalNetInvested).toFixed(2) + 'x' : '1.00x';
+
+    // Terminal cash flow for IRR
+    cashFlowsA.push({ date: finalDate, amount: +valA });
+    cashFlowsB.push({ date: finalDate, amount: +valB });
+    cashFlowsC.push({ date: finalDate, amount: +valC });
+
+    const irrA = calculateIRR(cashFlowsA);
+    const irrB = calculateIRR(cashFlowsB);
+    const irrC = calculateIRR(cashFlowsC);
+
+    // Update KPI Displays
+    const kpiEnd = document.getElementById('kpiFinalCapital');
+    const kpiDep = document.getElementById('kpiDeposits');
+    const kpiSubDep = document.getElementById('kpiSubDeposits');
+    const kpiProf = document.getElementById('kpiProfit');
+    const kpiMult = document.getElementById('kpiMultiplier');
+    const kpiIrr = document.getElementById('kpiIrr');
+    const kpiDd = document.getElementById('kpiDrawdown');
+
+    if (kpiEnd) kpiEnd.textContent = `${Math.round(valA).toLocaleString('de-DE')} €`;
+    if (kpiDep) kpiDep.textContent = `${Math.round(finalNetInvested).toLocaleString('de-DE')} €`;
+    if (kpiSubDep) kpiSubDep.textContent = `Start: ${initialCapital.toLocaleString('de-DE')} € + Sparraten: ${totalMonthlySavings.toLocaleString('de-DE')} €`;
+    if (kpiProf) {
+        kpiProf.textContent = `${finalProfitA >= 0 ? '+' : ''}${Math.round(finalProfitA).toLocaleString('de-DE')} € (${finalProfitA >= 0 ? '+' : ''}${finalProfitPctA.toFixed(1).replace('.', ',')} %)`;
+        kpiProf.style.color = finalProfitA >= 0 ? 'var(--green-trend)' : 'var(--red-trend)';
+    }
+    if (kpiMult) kpiMult.textContent = `Multiplikator: ${finalMultiplierA}`;
+    if (kpiIrr) {
+        kpiIrr.textContent = `${irrA !== null ? (irrA >= 0 ? '+' : '') + irrA.toFixed(2).replace('.', ',') + ' % p.a.' : 'n/a'}`;
+        kpiIrr.style.color = irrA !== null && irrA >= 0 ? 'var(--gold-dark)' : 'var(--red-trend)';
+    }
+    if (kpiDd) kpiDd.textContent = `Max. Rücksetzer: ${maxDdA.toFixed(1).replace('.', ',')} %`;
+
+    const periodBadge = document.getElementById('chartPeriodBadge');
+    if (periodBadge) {
+        periodBadge.textContent = `${formatDateDE(userStartDate)} – Heute (${(tradingDates.length / 252).toFixed(1).replace('.', ',')} Jahre)`;
+    }
+
+    // Downsample for Trajectory Chart (260 points)
+    const step = Math.max(1, Math.floor(timelineLabels.length / 260));
+    const sampledLabels = [];
+    const sampledValA = [];
+    const sampledValB = [];
+    const sampledValC = [];
+    const sampledNetDeposits = [];
+
+    for (let i = 0; i < timelineLabels.length; i += step) {
+        sampledLabels.push(timelineLabels[i]);
+        sampledValA.push(Math.round(timelineValA[i]));
+        sampledValB.push(Math.round(timelineValB[i]));
+        sampledValC.push(Math.round(timelineValC[i]));
+        sampledNetDeposits.push(Math.round(timelineNetDeposits[i]));
+    }
+    if (sampledLabels[sampledLabels.length - 1] !== timelineLabels[timelineLabels.length - 1]) {
+        sampledLabels.push(timelineLabels[timelineLabels.length - 1]);
+        sampledValA.push(Math.round(timelineValA[timelineValA.length - 1]));
+        sampledValB.push(Math.round(timelineValB[timelineValB.length - 1]));
+        sampledValC.push(Math.round(timelineValC[timelineValC.length - 1]));
+        sampledNetDeposits.push(Math.round(timelineNetDeposits[timelineNetDeposits.length - 1]));
+    }
+
+    // Chart Datasets
+    const datasets = [
+        {
+            label: `Strategie: ${underlyingAsset.name} (${leverageFactor}x ${leverageUseSma ? '+ SMA 200' : 'Buy & Hold'})`,
+            data: sampledValA,
+            borderColor: '#112D4E',
+            backgroundColor: 'rgba(17, 45, 78, 0.04)',
+            borderWidth: 2.8,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+            tension: 0.1
+        }
+    ];
+
+    if (leverageUseSma) {
+        datasets.push({
+            label: `Vergleich: ${leverageFactor}x Hebel Buy & Hold (ohne SMA)`,
+            data: sampledValB,
+            borderColor: '#8B5CF6',
+            borderWidth: 1.8,
+            borderDash: [5, 4],
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+            tension: 0.1
+        });
+    }
+
+    datasets.push({
+        label: `Referenz: ${underlyingAsset.name} 1x ungehebelt`,
+        data: sampledValC,
+        borderColor: '#0284C7',
+        borderWidth: 1.8,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: false,
+        tension: 0.1
+    });
+
+    datasets.push({
+        label: 'Eingezahltes Netto-Kapital',
+        data: sampledNetDeposits,
+        borderColor: '#94A3B8',
+        borderWidth: 1.5,
+        borderDash: [4, 4],
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        fill: false,
+        tension: 0
+    });
+
+    if (trajectoryChartInstance) {
+        trajectoryChartInstance.data.labels = sampledLabels;
+        trajectoryChartInstance.data.datasets = datasets;
+        trajectoryChartInstance.update('none');
+    }
+
+    // Summary Table
+    const totalDays = daysInLeverage + daysInMoneyMarket;
+    const levPct = totalDays > 0 ? (daysInLeverage / totalDays * 100).toFixed(1) : '100.0';
+    const cashPct = totalDays > 0 ? (daysInMoneyMarket / totalDays * 100).toFixed(1) : '0.0';
+
+    const summaryTbody = document.getElementById('backtestSummaryTableBody');
+    if (summaryTbody) {
+        summaryTbody.innerHTML = `
+            <tr>
+                <td><strong>Hebel-Strategie &amp; Parameter</strong></td>
+                <td style="font-weight: 700; color: var(--navy-dark);">${underlyingAsset.name} mit ${leverageFactor}x Tageshebel (TER: ${(leverageTer * 100).toFixed(2).replace('.', ',')} % p.a.)</td>
+                <td>Synthetischer täglicher ETF-Hebel (Pfadabhängigkeit &amp; Volatilitätsentwertung real abgebildet).</td>
+            </tr>
+            <tr>
+                <td><strong>Trendfolge-Logik (SMA 200)</strong></td>
+                <td style="font-weight: 700; color: ${leverageUseSma ? 'var(--gold-dark)' : 'var(--text-secondary)'};">
+                    ${leverageUseSma ? `200-Tage SMA aktiv &ndash; aktuell: <strong>${currentState === 'LEVERAGE' ? '🟢 Im Hebel-ETF (Aufwärtstrend)' : '🟡 Im Geldmarkt (Absicherung)'}</strong>` : 'Deaktiviert (Dauerhaft im Hebel-ETF)'}
+                </td>
+                <td>Next-Day Execution: Vergleich des ${underlyingAsset.name} Vortagesschlusskurses mit dem 200-Tage-Durchschnitt.</td>
+            </tr>
+            <tr>
+                <td><strong>Marktphasen-Verteilung</strong></td>
+                <td style="font-weight: 600;">
+                    ${daysInLeverage.toLocaleString('de-DE')} Tage Hebel (${levPct} %) &bull; ${daysInMoneyMarket.toLocaleString('de-DE')} Tage Geldmarkt (${cashPct} %)
+                </td>
+                <td>Historische Tage, die das Portfolio im gehebelten ETF bzw. im Euro Geldmarkt ETF verbracht hat.</td>
+            </tr>
+            <tr>
+                <td><strong>Signalwechsel &amp; Ordergebühren</strong></td>
+                <td style="font-weight: 600;">${switchesCount} Umschichtungen &bull; Gesamtkosten: ${totalFeesPaid.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</td>
+                <td>Ordergebühr von ${leverageOrderFee.toFixed(2).replace('.', ',')} € pro Wechsel zwischen Hebel und Geldmarkt.</td>
+            </tr>
+            <tr>
+                <td><strong>Historischer Anlagezeitraum</strong></td>
+                <td style="font-weight: 600;">${formatDateDE(tradingDates[0])} bis ${formatDateDE(finalDate)} (${(tradingDates.length / 252).toFixed(1).replace('.', ',')} Jahre)</td>
+                <td>${tradingDates.length.toLocaleString('de-DE')} echte Börsenhandelstage mit realen Tagesschlusskursen.</td>
+            </tr>
+            <tr>
+                <td><strong>Start-Einmalanlage</strong></td>
+                <td style="font-weight: 600;">${initialCapital.toLocaleString('de-DE')} €</td>
+                <td>Sofortinvestition am Starttag entsprechend der damaligen 200-SMA-Signallage.</td>
+            </tr>
+            <tr>
+                <td><strong>Monatliche Sparplanausführungen</strong></td>
+                <td style="font-weight: 600;">${totalMonthlySavings.toLocaleString('de-DE')} € (${monthlySavingsCount} Raten &agrave; ${monthlyRate.toLocaleString('de-DE')} €)</td>
+                <td>Automatisch zum 1. Handelstag des Monats in die jeweils aktive Anlageklasse (Hebel oder Geldmarkt) investiert.</td>
+            </tr>
+            ${extraDepositsCount > 0 ? `
+            <tr>
+                <td><strong>Zusätzliche Einzahlungen</strong></td>
+                <td style="font-weight: 600;">${totalExtraDeposits.toLocaleString('de-DE')} € (${extraDepositsCount} Buchungen)</td>
+                <td>Manuell terminierte Sonderzahlungen zum jeweiligen historischen Tageskurs.</td>
+            </tr>` : ''}
+            ${withdrawalsCount > 0 ? `
+            <tr>
+                <td><strong>Entnahmen / Teilverkäufe</strong></td>
+                <td style="font-weight: 600; color: var(--red-trend);">&minus;${totalWithdrawals.toLocaleString('de-DE')} € (${withdrawalsCount} Entnahmen)</td>
+                <td>Realisierte Kapitalabzüge aus dem Depotbestand.</td>
+            </tr>` : ''}
+            <tr>
+                <td><strong>Eingezahltes Netto-Kapital</strong></td>
+                <td style="font-weight: 700; color: var(--navy-dark);">${finalNetInvested.toLocaleString('de-DE')} €</td>
+                <td>Eigenkapitaleinsatz des Anlegers über die gesamte Anlagedauer.</td>
+            </tr>
+            <tr style="background: rgba(212, 175, 55, 0.08);">
+                <td><strong>Endvermögen heute (Depotwert)</strong></td>
+                <td style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">${Math.round(valA).toLocaleString('de-DE')} €</td>
+                <td>Aktueller realer Ist-Stand des Depotvermögens nach Abzug aller TER-Kosten und Ordergebühren.</td>
+            </tr>
+            <tr>
+                <td><strong>Absoluter Vermögenszuwachs</strong></td>
+                <td style="font-weight: 700; color: ${finalProfitA >= 0 ? 'var(--green-trend)' : 'var(--red-trend)'};">
+                    ${finalProfitA >= 0 ? '+' : ''}${Math.round(finalProfitA).toLocaleString('de-DE')} € (${finalProfitA >= 0 ? '+' : ''}${finalProfitPctA.toFixed(1).replace('.', ',')} %)
+                </td>
+                <td>Erzielter Gesamtertrag über den gewählten Anlagehorizont.</td>
+            </tr>
+            <tr>
+                <td><strong>Persönliche Jahresrendite (IRR p.a.)</strong></td>
+                <td style="font-weight: 800; font-size: 1.02rem; color: var(--gold-dark);">
+                    ${irrA !== null ? (irrA >= 0 ? '+' : '') + irrA.toFixed(2).replace('.', ',') + ' % p.a.' : 'n/a'}
+                </td>
+                <td>
+                    Interner Zinsfuß unter Berücksichtigung aller Zahlungszeitpunkte.
+                    <br><span style="font-size: 0.72rem; color: var(--text-muted);">
+                        Vergleich: 1x ungehebelt: <strong>${irrC !== null ? (irrC >= 0 ? '+' : '') + irrC.toFixed(2).replace('.', ',') + ' % p.a.' : '--'}</strong>
+                        ${leverageUseSma ? ` &bull; Hebel Buy &amp; Hold: <strong>${irrB !== null ? (irrB >= 0 ? '+' : '') + irrB.toFixed(2).replace('.', ',') + ' % p.a.' : '--'}</strong>` : ''}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Maximaler historischer Drawdown</strong></td>
+                <td style="font-weight: 700; color: var(--red-trend);">${maxDdA.toFixed(1).replace('.', ',')} %</td>
+                <td>
+                    Größter zwischenzeitlicher Verlust vom jeweiligen Höchststand.
+                    ${leverageUseSma ? `<br><span style="font-size: 0.72rem; color: var(--text-muted);">Vergleich Hebel Buy &amp; Hold: <strong>${maxDdB.toFixed(1).replace('.', ',')} %</strong></span>` : ''}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+/**
  * Historical Backtest Calculation Engine
  * Replays cash-flows on actual historical daily prices up to today.
  */
@@ -1284,6 +1817,31 @@ function runHistoricalBacktest() {
     const inpMonthly = document.getElementById('inputMonthlyRate');
 
     if (!inpStart) return;
+
+    const initialCapital = Math.max(0, parseFloat(inpCapital ? inpCapital.value : 0) || 0);
+    const monthlyRate = Math.max(0, parseFloat(inpMonthly ? inpMonthly.value : 0) || 0);
+
+    // Collect extra deposits
+    const extraDeposits = [];
+    document.querySelectorAll('#extraDepositsList .dynamic-row').forEach(row => {
+        const dt = row.querySelector('.row-date')?.value;
+        const amt = parseFloat(row.querySelector('.row-amount')?.value) || 0;
+        if (dt && amt > 0) extraDeposits.push({ date: dt, amount: amt });
+    });
+
+    // Collect withdrawals
+    const withdrawals = [];
+    document.querySelectorAll('#withdrawalsList .dynamic-row').forEach(row => {
+        const dt = row.querySelector('.row-date')?.value;
+        const amt = parseFloat(row.querySelector('.row-amount')?.value) || 0;
+        if (dt && amt > 0) withdrawals.push({ date: dt, amount: amt });
+    });
+
+    // Delegate to Leverage Backtest engine if in Leverage mode
+    if (backtestPortfolioMode === 'leverage') {
+        runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate, extraDeposits, withdrawals);
+        return;
+    }
 
     let weights = {};
     let strategyTitle = '';
@@ -1335,25 +1893,6 @@ function runHistoricalBacktest() {
             strategyTitle = `${item.fullName || item.name} (100 %)`;
         }
     }
-
-    const initialCapital = Math.max(0, parseFloat(inpCapital ? inpCapital.value : 0) || 0);
-    const monthlyRate = Math.max(0, parseFloat(inpMonthly ? inpMonthly.value : 0) || 0);
-
-    // Collect extra deposits
-    const extraDeposits = [];
-    document.querySelectorAll('#extraDepositsList .dynamic-row').forEach(row => {
-        const dt = row.querySelector('.row-date')?.value;
-        const amt = parseFloat(row.querySelector('.row-amount')?.value) || 0;
-        if (dt && amt > 0) extraDeposits.push({ date: dt, amount: amt });
-    });
-
-    // Collect withdrawals
-    const withdrawals = [];
-    document.querySelectorAll('#withdrawalsList .dynamic-row').forEach(row => {
-        const dt = row.querySelector('.row-date')?.value;
-        const amt = parseFloat(row.querySelector('.row-amount')?.value) || 0;
-        if (dt && amt > 0) withdrawals.push({ date: dt, amount: amt });
-    });
 
     // Earliest possible date for selected assets
     const earliestDate = getEarliestDateForCurrentSelection();

@@ -1405,13 +1405,19 @@ body {
 /* Portfolio Mode Tabs */
 .portfolio-mode-tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     background: #F1F5F9;
     padding: 4px;
     border-radius: 6px;
     margin-bottom: 14px;
     border: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 680px) {
+    .portfolio-mode-tabs {
+        grid-template-columns: 1fr;
+    }
 }
 
 .portfolio-mode-tab {
@@ -1608,5 +1614,182 @@ body {
     border-color: var(--gold);
     color: var(--gold-dark);
 }
+
+/* ==========================================================================
+   Hebel- & 200-SMA Trendfolge Strategie Styles
+   ========================================================================== */
+.leverage-config-card {
+    background: #FFFFFF;
+    border: 1.5px solid rgba(17, 45, 78, 0.15);
+    border-radius: 8px;
+    padding: 13px 14px;
+    margin-bottom: 14px;
+}
+
+.leverage-field-group {
+    margin-bottom: 11px;
+}
+
+.leverage-label {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--navy-dark);
+    margin-bottom: 5px;
+}
+
+.leverage-subtext {
+    font-size: 0.70rem;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 3px;
+    line-height: 1.35;
+}
+
+.leverage-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 500px) {
+    .leverage-grid-2col {
+        grid-template-columns: 1fr;
+    }
+}
+
+.leverage-pills {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.lev-pill {
+    flex: 1;
+    background: #F8FAFC;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--navy-dark);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.lev-pill:hover {
+    border-color: var(--gold);
+    color: var(--gold-dark);
+}
+
+.lev-pill.active {
+    background: var(--navy-primary);
+    border-color: var(--navy-primary);
+    color: #FFFFFF;
+}
+
+.leverage-info-pill {
+    font-size: 0.72rem;
+    color: var(--navy-dark);
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.35;
+}
+
+.sma-toggle-card {
+    background: #F8FAFC;
+    border: 1.5px solid var(--gold);
+    border-radius: 7px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.sma-switch-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.sma-switch-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sma-switch-title {
+    font-size: 0.80rem;
+    font-weight: 700;
+    color: var(--navy-dark);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sma-switch-desc {
+    font-size: 0.71rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.toggle-slider-wrapper {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.custom-toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.custom-toggle-track {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #CBD5E1;
+    transition: 0.25s;
+    border-radius: 24px;
+}
+
+.custom-toggle-track:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.25s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.custom-toggle-input:checked + .custom-toggle-track {
+    background-color: var(--gold-dark);
+}
+
+.custom-toggle-input:checked + .custom-toggle-track:before {
+    transform: translateX(20px);
+}
+
 
 

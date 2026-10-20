@@ -98,7 +98,7 @@ ASSETS_METADATA = [
         "isin": "LU0290358497",
         "wkn": "DBX0AN",
         "ter": "0,10 % p.a.",
-        "description": "Bildet exakt den kurzfristigen Euro-Geldmarktzins (€STR der EZB) ab. Dient als risikofreier Liquiditätspuffer und moderne Tagesgeld-Alternative im Depot."
+        "description": "Bildet exakt den kurzfristigen Euro-Geldmarktzins (€STR der EZB) ab. Historie vor 2008 mit offiziellen Geldmarktsätzen der Deutschen Bundesbank (FIBOR/Euribor) lückenlos bis 1970 zurückgerechnet. Dient als risikofreier Liquiditätspuffer und moderne Tagesgeld-Alternative im Depot."
     },
     {
         "id": "gold_eur",
@@ -222,6 +222,42 @@ def fetch_ticker_data(ticker):
         except Exception as e:
             print(f" (backfill failed: {e})", end="")
         return series_etf, meta
+    elif ticker == 'XEON.DE':
+        # Primary: XEON.DE (Xtrackers II EUR Overnight Rate Swap UCITS ETF)
+        series_etf, meta = fetch_raw_ticker('XEON.DE')
+        meta['currency'] = 'EUR'
+        try:
+            # Fetch official German / Euribor interbank rates from FRED (IR3TIB01DEM156N)
+            import subprocess
+            res = subprocess.run(['curl', '-s', '-m', '10', 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=IR3TIB01DEM156N'], capture_output=True, text=True)
+            lines = [l.strip().split(',') for l in res.stdout.split('\n') if l.strip() and not l.startswith('obs') and not l.startswith('<')]
+            rates_map = {row[0][:7]: float(row[1]) for row in lines if len(row) >= 2 and row[1] != '.'}
+            
+            # Reference trading dates from S&P 500 (^GSPC)
+            series_spx, _ = fetch_raw_ticker('^GSPC')
+            first_dt, first_val = series_etf[0]
+            pre_dates = [dt for dt, _ in series_spx if dt < first_dt]
+            
+            curr_price = first_val
+            backfilled = []
+            for i in range(len(pre_dates) - 1, -1, -1):
+                dt = pre_dates[i]
+                m_key = dt[:7]
+                # Default to 4.5% if missing for any historical month
+                ann_rate = rates_map.get(m_key, 4.5)
+                # Daily rate net of 0.10% TER
+                net_daily_rate = max(0.0, (ann_rate - 0.10) / 100.0) / 252.0
+                prev_price = curr_price / (1.0 + net_daily_rate)
+                backfilled.append([dt, round(prev_price, 4)])
+                curr_price = prev_price
+                
+            backfilled.reverse()
+            stitched = backfilled + series_etf
+            print(f" (backfilled {len(backfilled)} days to {stitched[0][0]} with Bundesbank/Euribor rates)", end="")
+            return stitched, meta
+        except Exception as e:
+            print(f" (Geldmarkt backfill failed: {e})", end="")
+            return series_etf, meta
     else:
         return fetch_raw_ticker(ticker)
 

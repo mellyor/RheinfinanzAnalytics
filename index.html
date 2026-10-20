@@ -200,8 +200,9 @@
 
                     <!-- Strategy Mode Switcher Tabs -->
                     <div class="portfolio-mode-tabs" id="portfolioModeTabs">
-                        <button type="button" class="portfolio-mode-tab active" data-mode="preset">Einzeltitel / Fertiges Portfolio</button>
-                        <button type="button" class="portfolio-mode-tab" data-mode="coresatellite">Core-Satellite Portfolio</button>
+                        <button type="button" class="portfolio-mode-tab active" data-mode="preset">Einzeltitel / Portfolio</button>
+                        <button type="button" class="portfolio-mode-tab" data-mode="coresatellite">Core-Satellite</button>
+                        <button type="button" class="portfolio-mode-tab" data-mode="leverage">Hebel &amp; 200-SMA</button>
                     </div>
 
                     <!-- Container A: Preset / Single Asset Selector -->
@@ -272,6 +273,82 @@
                             </div>
 
                             <button type="button" class="btn-add-satellite" id="btnAddSatellite">+ Weiteren Satelliten hinzufügen</button>
+                        </div>
+                    </div>
+
+                    <!-- Container C: Hebel & 200-SMA Trendfolge Configurator -->
+                    <div id="leverageContainer" style="display: none; margin-bottom: 16px;">
+                        <div class="leverage-config-card">
+                            <!-- Basisindex -->
+                            <div class="leverage-field-group">
+                                <label class="leverage-label" for="selectLeverageUnderlying">Basisindex für die Hebelung</label>
+                                <select id="selectLeverageUnderlying" class="backtest-target-select">
+                                    <option value="sp500" selected>S&P 500 (US-Leitindex Total Return, EUR)</option>
+                                    <option value="msci_world">MSCI World (Welt-Klassiker, EUR - ab 2009)</option>
+                                    <option value="us_dividend_aristocrats">US Dividend Aristocrats (EUR - ab 2011)</option>
+                                </select>
+                                <div class="leverage-info-pill">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <span>Echter 200-Tage SMA aus voller Index-Historie. Umschichtung erfolgt in Euro Geldmarkt ETF.</span>
+                                </div>
+                            </div>
+
+                            <!-- Hebel & TER Grid -->
+                            <div class="leverage-grid-2col">
+                                <!-- Hebel-Faktor -->
+                                <div class="leverage-field-group">
+                                    <label class="leverage-label" for="inputLeverageFactor">Täglicher Hebel-Faktor</label>
+                                    <div class="input-with-addons">
+                                        <input type="number" id="inputLeverageFactor" class="manual-num-input" min="1.0" max="5.0" step="0.5" value="2.0">
+                                        <span class="input-suffix">x Tageshebel</span>
+                                    </div>
+                                    <div class="leverage-pills" id="leverageQuickPills">
+                                        <button type="button" class="lev-pill" data-lev="1.0" data-ter="0.07">1x (Basis)</button>
+                                        <button type="button" class="lev-pill active" data-lev="2.0" data-ter="0.60">2x (Standard)</button>
+                                        <button type="button" class="lev-pill" data-lev="3.0" data-ter="0.75">3x (z.B. UPRO)</button>
+                                    </div>
+                                </div>
+
+                                <!-- TER -->
+                                <div class="leverage-field-group">
+                                    <label class="leverage-label" for="inputLeverageTer">ETF-Gesamtkosten (TER)</label>
+                                    <div class="input-with-addons">
+                                        <input type="number" id="inputLeverageTer" class="manual-num-input" min="0.0" max="3.0" step="0.05" value="0.60">
+                                        <span class="input-suffix">% p.a.</span>
+                                    </div>
+                                    <span class="leverage-subtext">Wird täglich anteilig (TER / 252) von der Tagesrendite abgezogen.</span>
+                                </div>
+                            </div>
+
+                            <!-- 200-Tage SMA Toggle Card -->
+                            <div class="sma-toggle-card">
+                                <label class="sma-switch-label" for="checkLeverageSma">
+                                    <div class="sma-switch-text">
+                                        <span class="sma-switch-title">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="2.2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                                            200-Tage SMA Trendfilter aktivieren
+                                        </span>
+                                        <span class="sma-switch-desc">
+                                            Kurs gestern <strong>über</strong> SMA 200 &rarr; 100 % im Hebel-ETF.<br>
+                                            Kurs gestern <strong>unter</strong> SMA 200 &rarr; Umschichtung in Geldmarkt am Folgetag.
+                                        </span>
+                                    </div>
+                                    <div class="toggle-slider-wrapper">
+                                        <input type="checkbox" id="checkLeverageSma" class="custom-toggle-input" checked>
+                                        <span class="custom-toggle-track"></span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Ordergebühr pro Umschichtung -->
+                            <div class="leverage-field-group" style="margin-top: 10px; margin-bottom: 0;">
+                                <label class="leverage-label" for="inputOrderFee">Ordergebühr pro Umschichtung (€)</label>
+                                <div class="input-with-addons">
+                                    <input type="number" id="inputOrderFee" class="manual-num-input" min="0" max="50" step="0.5" value="1.00" placeholder="1.00">
+                                    <span class="input-suffix">€ / Switch</span>
+                                </div>
+                                <span class="leverage-subtext">Wird bei jedem Signalwechsel (Hebel &harr; Geldmarkt) abgezogen (0 € für gebührenfrei).</span>
+                            </div>
                         </div>
                     </div>
 
