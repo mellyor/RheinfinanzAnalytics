@@ -189,12 +189,12 @@ function initTradingViewChart(symbol) {
         "symbol": symbol,
         "interval": "D",
         "timezone": "Europe/Berlin",
-        "theme": "dark",
+        "theme": "light",
         "style": "1", // 1 = Candles, 2 = Line, 3 = Area
         "locale": "de_DE",
         "enable_publishing": false,
-        "backgroundColor": "rgba(13, 22, 41, 1)",
-        "gridColor": "rgba(255, 255, 255, 0.05)",
+        "backgroundColor": "#FFFFFF",
+        "gridColor": "rgba(0, 0, 0, 0.05)",
         "hide_top_toolbar": false,
         "hide_legend": false,
         "save_image": false,
@@ -477,7 +477,7 @@ function initCharts() {
                     {
                         label: 'Optimistischer Korridor (90. Perzentil)',
                         data: [],
-                        borderColor: 'rgba(243, 229, 171, 0.4)',
+                        borderColor: 'rgba(170, 136, 37, 0.55)',
                         borderDash: [5, 5],
                         backgroundColor: 'transparent',
                         pointRadius: 0,
@@ -490,7 +490,7 @@ function initCharts() {
                         data: [],
                         borderColor: '#D4AF37',
                         borderWidth: 2.5,
-                        backgroundColor: 'rgba(212, 175, 55, 0.12)',
+                        backgroundColor: 'rgba(212, 175, 55, 0.14)',
                         pointBackgroundColor: '#D4AF37',
                         pointRadius: 2,
                         pointHoverRadius: 6,
@@ -501,9 +501,9 @@ function initCharts() {
                     {
                         label: 'Konservativer Korridor (10. Perzentil)',
                         data: [],
-                        borderColor: 'rgba(239, 68, 68, 0.45)',
+                        borderColor: 'rgba(220, 38, 38, 0.45)',
                         borderDash: [4, 4],
-                        backgroundColor: 'rgba(10, 25, 47, 0.4)',
+                        backgroundColor: 'rgba(17, 45, 78, 0.05)',
                         pointRadius: 0,
                         fill: '-1',
                         tension: 0.35,
@@ -512,9 +512,9 @@ function initCharts() {
                     {
                         label: 'Eingezahltes Eigenkapital',
                         data: [],
-                        borderColor: '#3F72AF',
+                        borderColor: '#112D4E',
                         borderWidth: 2,
-                        backgroundColor: 'rgba(63, 114, 175, 0.08)',
+                        backgroundColor: 'rgba(17, 45, 78, 0.04)',
                         pointRadius: 0,
                         fill: false,
                         tension: 0.1,
@@ -533,16 +533,16 @@ function initCharts() {
                     legend: {
                         position: 'top',
                         labels: {
-                            color: '#94A3B8',
-                            font: { family: 'Inter', size: 11 },
+                            color: '#1E293B',
+                            font: { family: 'Inter', size: 11, weight: '500' },
                             boxWidth: 12
                         }
                     },
                     tooltip: {
                         backgroundColor: '#0A192F',
-                        titleColor: '#F8FAFC',
-                        bodyColor: '#DBE2EF',
-                        borderColor: 'rgba(212, 175, 55, 0.4)',
+                        titleColor: '#FFFFFF',
+                        bodyColor: '#F3E5AB',
+                        borderColor: 'rgba(212, 175, 55, 0.6)',
                         borderWidth: 1,
                         padding: 12,
                         callbacks: {
@@ -554,11 +554,11 @@ function initCharts() {
                 },
                 scales: {
                     x: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { color: '#64748B', font: { family: 'Inter', size: 10 } }
                     },
                     y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: {
                             color: '#64748B',
                             font: { family: 'Inter', size: 10 },
@@ -590,8 +590,8 @@ function initCharts() {
                         '#AA8825', // Gold Dark Gold
                         '#94A3B8'  // Cash Slate
                     ],
-                    borderColor: '#111D35',
-                    borderWidth: 2,
+                    borderColor: '#FFFFFF',
+                    borderWidth: 2.5,
                     hoverOffset: 6
                 }]
             },
@@ -602,17 +602,17 @@ function initCharts() {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#94A3B8',
-                            font: { family: 'Inter', size: 10.5 },
+                            color: '#1E293B',
+                            font: { family: 'Inter', size: 11, weight: '500' },
                             boxWidth: 10,
                             padding: 8
                         }
                     },
                     tooltip: {
                         backgroundColor: '#0A192F',
-                        titleColor: '#F8FAFC',
-                        bodyColor: '#DBE2EF',
-                        borderColor: 'rgba(212, 175, 55, 0.4)',
+                        titleColor: '#FFFFFF',
+                        bodyColor: '#F3E5AB',
+                        borderColor: 'rgba(212, 175, 55, 0.6)',
                         borderWidth: 1,
                         callbacks: {
                             label: function(context) {
