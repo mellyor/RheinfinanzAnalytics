@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rheinfinanz Analytics | Markt-Charts & Strategie-Labor</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+    <!-- 1. Live Index Ticker Bar -->
+    <div class="ticker-bar">
+        <div class="ticker-track">
+            <!-- Set 1 -->
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[0])">
+                <span class="ticker-symbol">MSCI World:</span> 3.420,15 <span class="trend-up">+0,82 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[1])">
+                <span class="ticker-symbol">S&amp;P 500:</span> 5.864,67 <span class="trend-up">+0,41 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[2])">
+                <span class="ticker-symbol">Nasdaq 100:</span> 20.322,40 <span class="trend-up">+0,63 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[3])">
+                <span class="ticker-symbol">DAX 40:</span> 19.655,23 <span class="trend-up">+0,38 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[4])">
+                <span class="ticker-symbol">Euro Stoxx 50:</span> 4.945,80 <span class="trend-up">+0,29 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[5])">
+                <span class="ticker-symbol">MSCI Emerging Markets:</span> 44,82 <span class="trend-up">+1,15 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[6])">
+                <span class="ticker-symbol">Global Bonds (BND):</span> 72,14 <span class="trend-down">-0,08 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[7])">
+                <span class="ticker-symbol">Gold (USD):</span> 2.720,50 $ <span class="trend-up">+0,54 %</span>
+            </div>
+
+            <!-- Set 2 (for continuous smooth marquee) -->
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[0])">
+                <span class="ticker-symbol">MSCI World:</span> 3.420,15 <span class="trend-up">+0,82 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[1])">
+                <span class="ticker-symbol">S&amp;P 500:</span> 5.864,67 <span class="trend-up">+0,41 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[2])">
+                <span class="ticker-symbol">Nasdaq 100:</span> 20.322,40 <span class="trend-up">+0,63 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[3])">
+                <span class="ticker-symbol">DAX 40:</span> 19.655,23 <span class="trend-up">+0,38 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[4])">
+                <span class="ticker-symbol">Euro Stoxx 50:</span> 4.945,80 <span class="trend-up">+0,29 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[5])">
+                <span class="ticker-symbol">MSCI Emerging Markets:</span> 44,82 <span class="trend-up">+1,15 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[6])">
+                <span class="ticker-symbol">Global Bonds (BND):</span> 72,14 <span class="trend-down">-0,08 %</span>
+            </div>
+            <div class="ticker-item" onclick="selectIndex(INDEX_CONFIG[7])">
+                <span class="ticker-symbol">Gold (USD):</span> 2.720,50 $ <span class="trend-up">+0,54 %</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="app-container">
+
+        <!-- Header -->
+        <header class="app-header">
+            <a href="index.html" class="brand-wrapper">
+                <img src="assets/images/rheinfinanz-logo-complete.png" alt="Rheinfinanz Logo" class="brand-logo">
+                <div class="brand-divider"></div>
+                <div class="brand-titles">
+                    <h1>Rheinfinanz Analytics <span class="badge-tag">Strategie-Labor</span></h1>
+                    <div class="brand-subtitle">Marktdaten, Index-Charts & wissenschaftliche Portfolioanalyse</div>
+                </div>
+            </a>
+
+            <div class="header-actions">
+                <a href="#market-charts" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    Markt-Charts
+                </a>
+                <a href="#strategy-lab" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                        <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                    </svg>
+                    Strategie-Rechner
+                </a>
+                <a href="https://www.rheinfinanz.de" target="_blank" class="btn-primary-action">
+                    Zur Kanzlei-Website
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="7" y1="17" x2="17" y2="7"></line>
+                        <polyline points="7 7 17 7 17 17"></polyline>
+                    </svg>
+                </a>
+            </div>
+        </header>
+
+        <!-- ==================== SECTION 1: MARKT-CHARTS & INDIZES ==================== -->
+        <section id="market-charts" style="margin-bottom: 40px;">
+            <div class="section-headline">
+                <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                        <polyline points="17 6 23 6 23 12"></polyline>
+                    </svg>
+                    Tagesaktuelle Marktübersicht & Große Leitindizes
+                </h2>
+                <p>Klicken Sie auf einen Index, um den interaktiven Realtime-Chart aufzurufen und historische Kursverläufe zu analysieren.</p>
+            </div>
+
+            <!-- 8 Quick Index Selector Cards -->
+            <div class="indices-grid" id="indicesGrid">
+                <!-- Dynamisch generiert via app.js -->
+            </div>
+
+            <!-- Main Interactive TradingView Live Chart -->
+            <div class="main-chart-card">
+                <div class="chart-header-bar">
+                    <div class="chart-title-area">
+                        <span class="active-symbol-badge" id="activeSymbolBadge">MSCI World</span>
+                        <div class="chart-title-text">
+                            <h3 id="chartTitleH3">MSCI World – Live Chart & Performance</h3>
+                            <span id="chartTitleSpan">Global Equity (23 Industrieländer) • Ticker: AMEX:URTH</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-tabs">
+                        <button class="chart-tab-btn active" onclick="selectIndex(INDEX_CONFIG[0])">MSCI World</button>
+                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[1])">S&amp;P 500</button>
+                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[2])">Nasdaq 100</button>
+                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[3])">DAX 40</button>
+                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[5])">Emerging</button>
+                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[7])">Gold</button>
+                    </div>
+                </div>
+
+                <!-- TradingView Container -->
+                <div class="tradingview-container-wrapper" id="tradingview_widget_container">
+                    <!-- Widget script injected via app.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SECTION 2: STRATEGIE-LABOR & RECHNER ==================== -->
+        <section id="strategy-lab">
+            <div class="section-headline">
+                <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    Anlagestrategien implementieren, berechnen & bewerten
+                </h2>
+                <p>Wählen Sie eine bewährte Anlagestrategie oder konfigurieren Sie Ihre eigene Allokation, um Zinseszins, Risiko und Korridore zu berechnen.</p>
+            </div>
+
+            <div class="strategy-lab-grid">
+                
+                <!-- Left: Configuration & Controls -->
+                <div class="controller-card">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                            <polyline points="2 17 12 22 22 17"></polyline>
+                            <polyline points="2 12 12 17 22 12"></polyline>
+                        </svg>
+                        1. Strategie-Profil wählen
+                    </h3>
+
+                    <!-- Presets Selection -->
+                    <div class="presets-group" id="presetsGroup">
+                        <!-- Dynamisch generiert via app.js -->
+                    </div>
+
+                    <!-- Custom Allocation Weights Box (Shown if 'custom' is active) -->
+                    <div class="custom-weights-box" id="customWeightsBox">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: var(--gold-light); margin-bottom: 10px;">
+                            Individuelle Asset-Gewichtung:
+                        </div>
+
+                        <div class="weight-item">
+                            <div class="weight-header">
+                                <span>Aktien Welt (MSCI World)</span>
+                                <strong id="disp_weight_world" style="color: var(--gold);">50 %</strong>
+                            </div>
+                            <input type="range" id="weight_world" class="range-slider" min="0" max="100" step="5" value="50">
+                        </div>
+
+                        <div class="weight-item">
+                            <div class="weight-header">
+                                <span>Aktien Schwellenländer (EM)</span>
+                                <strong id="disp_weight_emerging" style="color: var(--gold);">15 %</strong>
+                            </div>
+                            <input type="range" id="weight_emerging" class="range-slider" min="0" max="100" step="5" value="15">
+                        </div>
+
+                        <div class="weight-item">
+                            <div class="weight-header">
+                                <span>Globale Anleihen (Bonds)</span>
+                                <strong id="disp_weight_bonds" style="color: var(--gold);">20 %</strong>
+                            </div>
+                            <input type="range" id="weight_bonds" class="range-slider" min="0" max="100" step="5" value="20">
+                        </div>
+
+                        <div class="weight-item">
+                            <div class="weight-header">
+                                <span>Gold (Physisch besichert)</span>
+                                <strong id="disp_weight_gold" style="color: var(--gold);">5 %</strong>
+                            </div>
+                            <input type="range" id="weight_gold" class="range-slider" min="0" max="100" step="5" value="5">
+                        </div>
+
+                        <div class="weight-item">
+                            <div class="weight-header">
+                                <span>Geldmarkt / Liquidität</span>
+                                <strong id="disp_weight_cash" style="color: var(--gold);">10 %</strong>
+                            </div>
+                            <input type="range" id="weight_cash" class="range-slider" min="0" max="100" step="5" value="10">
+                        </div>
+
+                        <div class="weight-total-indicator">
+                            <span>Gesamtsumme Allokation:</span>
+                            <span id="dispTotalWeight" style="color: var(--green-trend);">100 %</span>
+                        </div>
+                    </div>
+
+                    <!-- Financial Simulation Parameters -->
+                    <div class="inputs-section">
+                        <h3 class="card-title" style="margin-bottom: 14px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            2. Spar- & Anlageparameter
+                        </h3>
+
+                        <!-- Initial Capital Slider -->
+                        <div class="param-group">
+                            <div class="param-header">
+                                <label class="param-label" for="sliderInitialCapital">Einmalanlage (Startkapital)</label>
+                                <span class="param-display-val" id="dispInitialCapital">25.000 €</span>
+                            </div>
+                            <input type="range" id="sliderInitialCapital" class="range-slider" min="0" max="300000" step="5000" value="25000">
+                        </div>
+
+                        <!-- Monthly Savings Rate Slider -->
+                        <div class="param-group">
+                            <div class="param-header">
+                                <label class="param-label" for="sliderMonthlyRate">Monatliche Sparrate</label>
+                                <span class="param-display-val" id="dispMonthlyRate">500 € / Monat</span>
+                            </div>
+                            <input type="range" id="sliderMonthlyRate" class="range-slider" min="0" max="5000" step="50" value="500">
+                        </div>
+
+                        <!-- Horizon Slider -->
+                        <div class="param-group">
+                            <div class="param-header">
+                                <label class="param-label" for="sliderYears">Anlagehorizont</label>
+                                <span class="param-display-val" id="dispYears">20 Jahre</span>
+                            </div>
+                            <input type="range" id="sliderYears" class="range-slider" min="1" max="40" step="1" value="20">
+                        </div>
+
+                        <!-- Inflation Adjustment Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-subtle); margin-top: 14px;">
+                            <div>
+                                <label for="inflationToggle" style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); cursor: pointer; display: block;">
+                                    Kaufkraftbereinigung
+                                </label>
+                                <span style="font-size: 0.72rem; color: var(--text-muted);">Reale Werte nach 2,0 % Inflation p.a.</span>
+                            </div>
+                            <input type="checkbox" id="inflationToggle" style="width: 18px; height: 18px; accent-color: var(--gold); cursor: pointer;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Analytics, Key Metrics & Visualizations -->
+                <div class="analytics-output">
+                    
+                    <!-- 4 Top KPI Cards -->
+                    <div class="kpi-row">
+                        <div class="kpi-card highlight">
+                            <div class="kpi-label">Erwartetes Endvermögen</div>
+                            <div class="kpi-main-val gold" id="kpiFinalCapital">342.150 €</div>
+                            <div class="kpi-sub-text" id="kpiSubCapital">Nominaler Vermögensendwert</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-label">Zinsertrag / Wertzuwachs</div>
+                            <div class="kpi-main-val" id="kpiProfit">+197.150 €</div>
+                            <div class="kpi-sub-text" id="kpiDeposits">Eingezahlt: 145.000 €</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-label">Kapital-Multiplikator</div>
+                            <div class="kpi-main-val" id="kpiMultiplier">2.36x</div>
+                            <div class="kpi-sub-text" id="kpiSharpe">Sharpe Ratio: 0.36</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-label">Risikoprofil (Volatilität)</div>
+                            <div class="kpi-main-val" id="kpiRisk">16.0 % p.a.</div>
+                            <div class="kpi-sub-text" id="kpiDrawdown">Max. Drawdown: ca. -56 %</div>
+                        </div>
+                    </div>
+
+                    <!-- Visuals Split: Trajectory Area Chart + Asset Donut -->
+                    <div class="visuals-split">
+                        <div class="chart-card-output">
+                            <div class="chart-card-header">
+                                <h4 class="chart-card-title">Vermögensverlauf & Prognose-Korridor (10. – 90. Perzentil)</h4>
+                                <span style="font-size: 0.74rem; color: var(--text-muted);">Monte-Carlo-Näherung</span>
+                            </div>
+                            <div class="chart-container-box">
+                                <canvas id="wealthTrajectoryCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-card-output">
+                            <div class="chart-card-header">
+                                <h4 class="chart-card-title">Asset-Allokation</h4>
+                                <span style="font-size: 0.74rem; color: var(--text-muted);">Gewichtung</span>
+                            </div>
+                            <div class="donut-container-box">
+                                <canvas id="assetDonutCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Strategy Assessment & Stress-Test Table -->
+                    <div class="assessment-card">
+                        <h4 class="chart-card-title" style="margin-bottom: 6px;">
+                            Wissenschaftliche Risikobewertung & Historischer Stresstest
+                        </h4>
+                        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px;">
+                            Vergleich der Risiko- und Ertragskennzahlen der ausgewählten Portfoliostruktur im Vergleich zu historischen Marktkrisen.
+                        </p>
+
+                        <table class="assessment-table">
+                            <thead>
+                                <tr>
+                                    <th>Kennzahl / Szenario</th>
+                                    <th>Wert / Ausprägung</th>
+                                    <th>Erklärung für die Anlagepraxis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Erwartete Rendite p.a.</strong></td>
+                                    <td id="tableExpReturn" style="font-weight: 700; color: var(--gold);">7.70 % p.a.</td>
+                                    <td>Langfristig prognostizierte geometrische Rendite vor Kosten &amp; Steuern.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Volatilität (1-Sigma)</strong></td>
+                                    <td id="tableVolatility" style="font-weight: 600;">16.00 % p.a.</td>
+                                    <td>Statistischer Schwankungskorridor um den Erwartungswert in ca. 68 % aller Jahre.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Maximaler historischer Drawdown</strong></td>
+                                    <td id="tableMaxDrawdown" style="font-weight: 600; color: var(--red-trend);">-56.0 %</td>
+                                    <td>Größter historischer Verlust vom Höchststand bis zum Tiefpunkt (z. B. Weltwirtschaftskrise 2008).</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sharpe Ratio (Rf = 2,0 %)</strong></td>
+                                    <td id="tableSharpe" style="font-weight: 600;">0.36</td>
+                                    <td>Überrendite je Einheit eingegangenes Risiko. Höhere Werte signalisieren effizientere Portfolios.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Stresstest: Finanzkrise 2008</strong></td>
+                                    <td id="tableCrisis2008" style="color: var(--red-trend); font-weight: 600;">ca. -56 %</td>
+                                    <td>Verlustentwicklung bei einem systemischen Aktiencrash mit Bankenkrise.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Stresstest: Corona-Schock 2020</strong></td>
+                                    <td id="tableCrisisCorona" style="color: var(--red-trend); font-weight: 600;">ca. -36 %</td>
+                                    <td>Schneller Liquiditätsschock mit rascher V-förmiger Markterholung innerhalb weniger Monate.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="compliance-note">
+                            <strong>Hinweis zur Methodik &amp; Risikotragfähigkeit:</strong> Alle dargestellten Berechnungen und Renditeerwartungen basieren auf historischen Kapitalmarktdaten und wissenschaftlichen Kapitalmarkttheorien (Markowitz, Fama-French). Wertentwicklungen der Vergangenheit sind kein verlässlicher Indikator für künftige Ergebnisse. Bei Rheinfinanz passen wir im persönlichen Beratungsgespräch die Allokation exakt an Ihre persönliche Risikotoleranz und Anlageziele an.
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-brand">
+                <strong>Rheinfinanz Anlageberatung GmbH</strong> &bull; Rhöndorfer Str. 68, Gebäudeteil B, 53604 Bad Honnef<br>
+                <span style="font-size: 0.72rem;">Unabhängige Honorar-Finanzanlagenberatung nach § 34h GewO</span>
+            </div>
+            <div class="footer-links">
+                <a href="https://www.rheinfinanz.de" target="_blank">Startseite</a>
+                <a href="https://www.rheinfinanz.de/beratungsdokumentation.html" target="_blank">Beratungsdokumentation</a>
+                <a href="https://www.rheinfinanz.de/vorbereitungsbogen.html" target="_blank">Vorbereitungsbogen</a>
+                <a href="https://www.rheinfinanz.de/impressum.html" target="_blank">Impressum</a>
+                <a href="https://www.rheinfinanz.de/datenschutz.html" target="_blank">Datenschutz</a>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/strategies.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
