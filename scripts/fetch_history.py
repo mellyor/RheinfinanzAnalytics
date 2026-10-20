@@ -293,6 +293,15 @@ def compute_metrics(series, rf_rate=0.025):
             
     # Sharpe Ratio
     sharpe = (cagr - rf_rate) / annualized_vol if annualized_vol > 0.001 else 0.0
+
+    # Sortino Ratio (Downside deviation below risk-free rate)
+    daily_rf = rf_rate / 252.0
+    downside_sq_diffs = [min(0.0, r - daily_rf) ** 2 for r in daily_returns]
+    if downside_sq_diffs:
+        downside_dev = math.sqrt(sum(downside_sq_diffs) / len(downside_sq_diffs)) * math.sqrt(252)
+        sortino = (cagr - rf_rate) / downside_dev if downside_dev > 0.001 else 0.0
+    else:
+        sortino = 0.0
     
     # 1-day change
     if len(series) >= 2:
@@ -316,7 +325,8 @@ def compute_metrics(series, rf_rate=0.025):
         "return5Y": ret_5y,
         "volatilityPct": round(annualized_vol * 100, 2),
         "maxDrawdownPct": round(max_dd * 100, 2),
-        "sharpeRatio": round(sharpe, 2)
+        "sharpeRatio": round(sharpe, 2),
+        "sortinoRatio": round(sortino, 2)
     }
 
 def main():

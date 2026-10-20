@@ -74,11 +74,19 @@
                     <div class="control-group">
                         <label class="control-label">Historischer Zeitraum:</label>
                         <div class="timeframe-pills" id="timeframePills">
-                            <button class="timeframe-pill active" data-period="gpo">Seit GPO (März 2022)</button>
-                            <button class="timeframe-pill" data-period="fio">Seit FIO (Juni 2023)</button>
-                            <button class="timeframe-pill" data-period="5y">Letzte 5 Jahre</button>
-                            <button class="timeframe-pill" data-period="10y">Letzte 10 Jahre</button>
+                            <button class="timeframe-pill" data-period="1y">1 Jahr</button>
+                            <button class="timeframe-pill" data-period="3y">3 Jahre</button>
+                            <button class="timeframe-pill active" data-period="5y">5 Jahre</button>
+                            <button class="timeframe-pill" data-period="10y">10 Jahre</button>
                             <button class="timeframe-pill" data-period="max">Maximaler Zeitraum</button>
+                        </div>
+                        <!-- Inline Custom Date Range Field -->
+                        <div class="custom-date-box">
+                            <span class="custom-date-label">Zeitraum:</span>
+                            <input type="date" id="inputCustomStart" class="custom-date-input" title="Startdatum (z.B. 01.04.2019)">
+                            <span class="custom-date-sep">bis</span>
+                            <input type="date" id="inputCustomEnd" class="custom-date-input" title="Enddatum">
+                            <button type="button" id="btnApplyCustomDate" class="custom-date-btn">Anwenden</button>
                         </div>
                     </div>
 
@@ -99,9 +107,8 @@
                             <span style="font-size: 0.76rem; color: var(--text-muted);">(Klicken Sie auf die Karten oben, um weitere Werte hinzuzufügen)</span>
                         </div>
                         <div class="selection-quick-actions">
-                            <button class="quick-action-btn" id="btnOnlyMsci">Standard (Nur MSCI World)</button>
-                            <button class="quick-action-btn" id="btnGpoVsWorld">Dr. Beck (GPO) vs. MSCI World</button>
-                            <button class="quick-action-btn" id="btnSelectAll">Alle 11 Indizes</button>
+                            <button class="quick-action-btn" id="btnResetMsci">Zurücksetzen (MSCI World)</button>
+                            <button class="quick-action-btn" id="btnSelectAll">Alle Indizes</button>
                         </div>
                     </div>
                 </div>
@@ -118,22 +125,25 @@
 
                 <!-- Comprehensive Historical Metrics Table -->
                 <div class="backtest-table-wrapper">
-                    <h4 class="table-subtitle">Kennzahlen-Matrix aller 11 Instrumente (Historische Ist-Daten)</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                        <h4 class="table-subtitle" style="margin-bottom: 0;">Kennzahlen-Matrix aller 11 Instrumente (Historische Total-Return-Daten)</h4>
+                        <span style="font-size: 0.74rem; color: var(--text-muted);">Spaltenkopf anklicken zum Sortieren (▲ / ▼)</span>
+                    </div>
                     <div class="table-responsive">
                         <table class="analytics-table" id="historicalComparisonTable">
                             <thead>
                                 <tr>
-                                    <th>Instrument / Index</th>
-                                    <th>Kategorie</th>
-                                    <th>Letzter Kurs</th>
-                                    <th>1-Tages &Delta;</th>
-                                    <th>1-Jahr</th>
-                                    <th>3-Jahre (p.a.)</th>
-                                    <th>Gesamtrendite</th>
-                                    <th>CAGR p.a.</th>
-                                    <th>Volatilität p.a.</th>
-                                    <th>Max Drawdown</th>
-                                    <th>Sharpe Ratio</th>
+                                    <th data-sort="name" class="sortable-th">Instrument / Index <span class="sort-icon"></span></th>
+                                    <th data-sort="category" class="sortable-th">Kategorie <span class="sort-icon"></span></th>
+                                    <th data-sort="dayChangePct" class="sortable-th">1-Tages &Delta; <span class="sort-icon"></span></th>
+                                    <th data-sort="return1Y" class="sortable-th">1-Jahr <span class="sort-icon"></span></th>
+                                    <th data-sort="return3Y" class="sortable-th">3-Jahre (p.a.) <span class="sort-icon"></span></th>
+                                    <th data-sort="totalReturnPct" class="sortable-th">Gesamtrendite <span class="sort-icon"></span></th>
+                                    <th data-sort="cagrPct" class="sortable-th">CAGR p.a. <span class="sort-icon"></span></th>
+                                    <th data-sort="volatilityPct" class="sortable-th">Volatilität p.a. <span class="sort-icon"></span></th>
+                                    <th data-sort="maxDrawdownPct" class="sortable-th">Max Drawdown <span class="sort-icon"></span></th>
+                                    <th data-sort="sharpeRatio" class="sortable-th">Sharpe Ratio <span class="sort-icon"></span></th>
+                                    <th data-sort="sortinoRatio" class="sortable-th">Sortino Ratio <span class="sort-icon"></span></th>
                                 </tr>
                             </thead>
                             <tbody id="historicalComparisonTableBody">
@@ -145,7 +155,7 @@
             </div>
         </section>
 
-        <!-- ==================== SECTION 2: STRATEGIE-LABOR & RECHNER ==================== -->
+        <!-- ==================== SECTION 2: PERSÖNLICHER HISTORISCHER SPARPLAN- & PORTFOLIO-BACKTEST ==================== -->
         <section id="strategy-lab">
             <div class="section-headline">
                 <h2>
@@ -154,9 +164,9 @@
                         <line x1="8" y1="21" x2="16" y2="21"></line>
                         <line x1="12" y1="17" x2="12" y2="21"></line>
                     </svg>
-                    Anlagestrategien implementieren, berechnen & bewerten
+                    Persönlicher historischer Sparplan- &amp; Portfolio-Backtest
                 </h2>
-                <p>Wählen Sie eine bewährte Anlagestrategie oder konfigurieren Sie Ihre eigene Allokation, um Zinseszins, Risiko und Korridore zu berechnen.</p>
+                <p>Ermitteln Sie Ihre reale historische Performance: Wie viel Vermögen hätten Sie heute, wenn Sie zu einem gewählten Startdatum eine Einmalanlage getätigt und monatlich gespart hätten? Berechnet mit täglichen realen Marktkursen bis heute.</p>
             </div>
 
             <div class="strategy-lab-grid">
@@ -169,113 +179,122 @@
                             <polyline points="2 17 12 22 22 17"></polyline>
                             <polyline points="2 12 12 17 22 12"></polyline>
                         </svg>
-                        1. Strategie-Profil wählen
+                        1. Instrument oder Allokation wählen
                     </h3>
 
-                    <!-- Presets Selection -->
-                    <div class="presets-group" id="presetsGroup">
-                        <!-- Dynamisch generiert via app.js -->
+                    <!-- Instrument / Strategy Selector Dropdown -->
+                    <select id="backtestAssetSelect" class="backtest-target-select">
+                        <optgroup label="Leitindizes &amp; ETFs (100 %)">
+                            <option value="sp500" selected>S&P 500 (US-Leitindex Total Return, EUR)</option>
+                            <option value="msci_world">MSCI World (Welt-Klassiker, EUR)</option>
+                            <option value="ftse_all_world">FTSE All-World (Welt &amp; Schwellenländer, EUR)</option>
+                            <option value="global_portfolio_one">Global Portfolio One (Dr. Andreas Beck)</option>
+                            <option value="fixed_income_one">Fixed Income One (Dr. Andreas Beck)</option>
+                            <option value="gold_eur">Gold in Euro (Xetra-Gold physisch)</option>
+                            <option value="us_dividend_aristocrats">US Dividend Aristocrats (EUR)</option>
+                            <option value="msci_small_cap">MSCI World Small Cap (Nebenwerte global, EUR)</option>
+                            <option value="msci_emerging_markets">MSCI World Emerging Markets (EUR)</option>
+                            <option value="bitcoin_eur">Bitcoin in Euro (Spot)</option>
+                            <option value="euro_geldmarkt">Euro Geldmarkt ETF (XEON risikofrei, EUR)</option>
+                        </optgroup>
+                        <optgroup label="Wissenschaftliche Multi-Asset Allokationen">
+                            <option value="strat_beck_80_20">Dr. Beck Portfolio (80 % GPO + 20 % Fixed Income)</option>
+                            <option value="strat_world_100">100 % All-World Aktien (90 % MSCI World + 10 % EM)</option>
+                            <option value="strat_70_30">70 / 30 Welt-Portfolio (70 % MSCI World + 30 % EM)</option>
+                            <option value="strat_60_40">60 / 40 Klassiker (60 % MSCI World + 40 % Fixed Income)</option>
+                            <option value="strat_allweather">Allwetter-Portfolio (35 % World, 5 % EM, 45 % Bonds, 10 % Gold, 5 % Cash)</option>
+                        </optgroup>
+                    </select>
+
+                    <div id="backtestAssetInfoBadge" style="font-size: 0.76rem; color: var(--text-secondary); background: #F8FAFC; border: 1px solid var(--border-subtle); padding: 8px 10px; border-radius: 6px; margin-bottom: 16px;">
+                        <!-- Dynamisch befüllt mit ISIN & Historienzeitraum -->
                     </div>
 
-                    <!-- Custom Allocation Weights Box (Shown if 'custom' is active) -->
-                    <div class="custom-weights-box" id="customWeightsBox">
-                        <div style="font-size: 0.82rem; font-weight: 700; color: var(--gold-light); margin-bottom: 10px;">
-                            Individuelle Asset-Gewichtung:
-                        </div>
-
-                        <div class="weight-item">
-                            <div class="weight-header">
-                                <span>Aktien Welt (MSCI World)</span>
-                                <strong id="disp_weight_world" style="color: var(--gold);">50 %</strong>
-                            </div>
-                            <input type="range" id="weight_world" class="range-slider" min="0" max="100" step="5" value="50">
-                        </div>
-
-                        <div class="weight-item">
-                            <div class="weight-header">
-                                <span>Aktien Schwellenländer (EM)</span>
-                                <strong id="disp_weight_emerging" style="color: var(--gold);">15 %</strong>
-                            </div>
-                            <input type="range" id="weight_emerging" class="range-slider" min="0" max="100" step="5" value="15">
-                        </div>
-
-                        <div class="weight-item">
-                            <div class="weight-header">
-                                <span>Globale Anleihen (Bonds)</span>
-                                <strong id="disp_weight_bonds" style="color: var(--gold);">20 %</strong>
-                            </div>
-                            <input type="range" id="weight_bonds" class="range-slider" min="0" max="100" step="5" value="20">
-                        </div>
-
-                        <div class="weight-item">
-                            <div class="weight-header">
-                                <span>Gold (Physisch besichert)</span>
-                                <strong id="disp_weight_gold" style="color: var(--gold);">5 %</strong>
-                            </div>
-                            <input type="range" id="weight_gold" class="range-slider" min="0" max="100" step="5" value="5">
-                        </div>
-
-                        <div class="weight-item">
-                            <div class="weight-header">
-                                <span>Geldmarkt / Liquidität</span>
-                                <strong id="disp_weight_cash" style="color: var(--gold);">10 %</strong>
-                            </div>
-                            <input type="range" id="weight_cash" class="range-slider" min="0" max="100" step="5" value="10">
-                        </div>
-
-                        <div class="weight-total-indicator">
-                            <span>Gesamtsumme Allokation:</span>
-                            <span id="dispTotalWeight" style="color: var(--green-trend);">100 %</span>
-                        </div>
-                    </div>
-
-                    <!-- Financial Simulation Parameters -->
-                    <div class="inputs-section">
+                    <!-- Financial Simulation Parameters (Manual numeric inputs) -->
+                    <div class="inputs-section" style="border-top: none; padding-top: 0; margin-top: 0;">
                         <h3 class="card-title" style="margin-bottom: 14px;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            2. Spar- & Anlageparameter
+                            2. Spar- &amp; Anlageparameter
                         </h3>
 
-                        <!-- Initial Capital Slider -->
+                        <!-- Start Date / Investment Inception -->
                         <div class="param-group">
                             <div class="param-header">
-                                <label class="param-label" for="sliderInitialCapital">Einmalanlage (Startkapital)</label>
-                                <span class="param-display-val" id="dispInitialCapital">25.000 €</span>
+                                <label class="param-label" for="inputBacktestStart">Startdatum (Wann wurde angefangen?)</label>
                             </div>
-                            <input type="range" id="sliderInitialCapital" class="range-slider" min="0" max="300000" step="5000" value="25000">
+                            <div class="input-with-addons">
+                                <input type="date" id="inputBacktestStart" class="manual-num-input" value="2019-10-20">
+                            </div>
+                            <div class="date-preset-pills" id="backtestDatePills">
+                                <button type="button" class="date-preset-pill" data-years="1">Vor 1 Jahr</button>
+                                <button type="button" class="date-preset-pill" data-years="3">Vor 3 Jahren</button>
+                                <button type="button" class="date-preset-pill active" data-years="5">Vor 5 Jahren</button>
+                                <button type="button" class="date-preset-pill" data-years="10">Vor 10 Jahren</button>
+                                <button type="button" class="date-preset-pill" data-years="max">Maximal</button>
+                            </div>
                         </div>
 
-                        <!-- Monthly Savings Rate Slider -->
+                        <!-- Initial Capital (Start-Einmalanlage) -->
                         <div class="param-group">
                             <div class="param-header">
-                                <label class="param-label" for="sliderMonthlyRate">Monatliche Sparrate</label>
-                                <span class="param-display-val" id="dispMonthlyRate">500 € / Monat</span>
+                                <label class="param-label" for="inputInitialCapital">Start-Einmalanlage</label>
                             </div>
-                            <input type="range" id="sliderMonthlyRate" class="range-slider" min="0" max="5000" step="50" value="500">
+                            <div class="input-with-addons">
+                                <input type="number" id="inputInitialCapital" class="manual-num-input" min="0" step="500" value="10000" placeholder="z. B. 10000">
+                                <span class="input-suffix">€</span>
+                            </div>
                         </div>
 
-                        <!-- Horizon Slider -->
+                        <!-- Monthly Savings Rate -->
                         <div class="param-group">
                             <div class="param-header">
-                                <label class="param-label" for="sliderYears">Anlagehorizont</label>
-                                <span class="param-display-val" id="dispYears">20 Jahre</span>
+                                <label class="param-label" for="inputMonthlyRate">Monatliche Sparrate</label>
                             </div>
-                            <input type="range" id="sliderYears" class="range-slider" min="1" max="40" step="1" value="20">
+                            <div class="input-with-addons">
+                                <input type="number" id="inputMonthlyRate" class="manual-num-input" min="0" step="50" value="500" placeholder="z. B. 500">
+                                <span class="input-suffix">€ / Monat</span>
+                            </div>
+                            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Wird stets zum 1. Handelstag jedes Kalendermonats investiert.</span>
                         </div>
 
-                        <!-- Inflation Adjustment Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-subtle); margin-top: 14px;">
-                            <div>
-                                <label for="inflationToggle" style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); cursor: pointer; display: block;">
-                                    Kaufkraftbereinigung
-                                </label>
-                                <span style="font-size: 0.72rem; color: var(--text-muted);">Reale Werte nach 2,0 % Inflation p.a.</span>
+                        <!-- Optional: Additional One-Time Deposits -->
+                        <div class="collapsible-wrapper" id="wrapExtraDeposits">
+                            <div class="collapsible-header" id="headerExtraDeposits">
+                                <div class="collapsible-title">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    Zusätzliche Einmalanlagen <span class="collapsible-badge">Optional</span>
+                                </div>
+                                <span class="collapsible-chevron">▼</span>
                             </div>
-                            <input type="checkbox" id="inflationToggle" style="width: 18px; height: 18px; accent-color: var(--gold); cursor: pointer;">
+                            <div class="collapsible-body" id="bodyExtraDeposits">
+                                <div class="dynamic-cashflow-rows" id="extraDepositsList"></div>
+                                <button type="button" class="btn-add-row" id="btnAddExtraDeposit">+ Zusätzliche Einzahlung</button>
+                            </div>
                         </div>
+
+                        <!-- Optional: Partial Withdrawals / Sales -->
+                        <div class="collapsible-wrapper" id="wrapWithdrawals">
+                            <div class="collapsible-header" id="headerWithdrawals">
+                                <div class="collapsible-title">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    Teilverkäufe / Entnahmen <span class="collapsible-badge">Optional</span>
+                                </div>
+                                <span class="collapsible-chevron">▼</span>
+                            </div>
+                            <div class="collapsible-body" id="bodyWithdrawals">
+                                <div class="dynamic-cashflow-rows" id="withdrawalsList"></div>
+                                <button type="button" class="btn-add-row" id="btnAddWithdrawal">+ Teilverkauf / Entnahme</button>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button type="button" id="btnRunBacktest" class="nav-link-btn" style="width: 100%; justify-content: center; margin-top: 18px; background: var(--navy-primary); color: #fff; border-color: var(--navy-primary); padding: 11px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            Backtest bis heute berechnen
+                        </button>
                     </div>
                 </div>
 
@@ -285,106 +304,68 @@
                     <!-- 4 Top KPI Cards -->
                     <div class="kpi-row">
                         <div class="kpi-card highlight">
-                            <div class="kpi-label">Erwartetes Endvermögen</div>
-                            <div class="kpi-main-val gold" id="kpiFinalCapital">342.150 €</div>
-                            <div class="kpi-sub-text" id="kpiSubCapital">Nominaler Vermögensendwert</div>
+                            <div class="kpi-label">Depotwert heute (Ist-Stand)</div>
+                            <div class="kpi-main-val gold" id="kpiFinalCapital">-- €</div>
+                            <div class="kpi-sub-text" id="kpiSubCapital">Echtes Endvermögen heute</div>
                         </div>
 
                         <div class="kpi-card">
-                            <div class="kpi-label">Zinsertrag / Wertzuwachs</div>
-                            <div class="kpi-main-val" id="kpiProfit">+197.150 €</div>
-                            <div class="kpi-sub-text" id="kpiDeposits">Eingezahlt: 145.000 €</div>
+                            <div class="kpi-label">Eingezahltes Netto-Kapital</div>
+                            <div class="kpi-main-val" id="kpiDeposits">-- €</div>
+                            <div class="kpi-sub-text" id="kpiSubDeposits">Einmalanlage + Sparraten</div>
                         </div>
 
                         <div class="kpi-card">
-                            <div class="kpi-label">Kapital-Multiplikator</div>
-                            <div class="kpi-main-val" id="kpiMultiplier">2.36x</div>
-                            <div class="kpi-sub-text" id="kpiSharpe">Sharpe Ratio: 0.36</div>
+                            <div class="kpi-label">Absoluter Wertzuwachs</div>
+                            <div class="kpi-main-val" id="kpiProfit">-- €</div>
+                            <div class="kpi-sub-text" id="kpiMultiplier">Multiplikator: --</div>
                         </div>
 
                         <div class="kpi-card">
-                            <div class="kpi-label">Risikoprofil (Volatilität)</div>
-                            <div class="kpi-main-val" id="kpiRisk">16.0 % p.a.</div>
-                            <div class="kpi-sub-text" id="kpiDrawdown">Max. Drawdown: ca. -56 %</div>
+                            <div class="kpi-label">Persönliche Rendite (IRR)</div>
+                            <div class="kpi-main-val" id="kpiIrr">-- % p.a.</div>
+                            <div class="kpi-sub-text" id="kpiDrawdown">Max. Rücksetzer: -- %</div>
                         </div>
                     </div>
 
-                    <!-- Visuals Split: Trajectory Area Chart + Asset Donut -->
-                    <div class="visuals-split">
-                        <div class="chart-card-output">
-                            <div class="chart-card-header">
-                                <h4 class="chart-card-title">Vermögensverlauf & Prognose-Korridor (10. – 90. Perzentil)</h4>
-                                <span style="font-size: 0.74rem; color: var(--text-muted);">Monte-Carlo-Näherung</span>
+                    <!-- Visuals: Historical Equity Curve vs. Invested Capital -->
+                    <div class="chart-card-output">
+                        <div class="chart-card-header">
+                            <div>
+                                <h4 class="chart-card-title">Historische Depotentwicklung vs. Eingezahltes Kapital</h4>
+                                <span style="font-size: 0.74rem; color: var(--text-muted);">Reale Marktkurse inklusive aller reinvestierten Erträge (Total Return)</span>
                             </div>
-                            <div class="chart-container-box">
-                                <canvas id="wealthTrajectoryCanvas"></canvas>
-                            </div>
+                            <span id="chartPeriodBadge" style="font-size: 0.75rem; font-weight: 700; color: var(--gold-dark); background: rgba(212, 175, 55, 0.12); padding: 3px 8px; border-radius: 4px;"></span>
                         </div>
-
-                        <div class="chart-card-output">
-                            <div class="chart-card-header">
-                                <h4 class="chart-card-title">Asset-Allokation</h4>
-                                <span style="font-size: 0.74rem; color: var(--text-muted);">Gewichtung</span>
-                            </div>
-                            <div class="donut-container-box">
-                                <canvas id="assetDonutCanvas"></canvas>
-                            </div>
+                        <div class="chart-container-box" style="height: 350px;">
+                            <canvas id="wealthTrajectoryCanvas"></canvas>
                         </div>
                     </div>
 
-                    <!-- Strategy Assessment & Stress-Test Table -->
+                    <!-- Detailed Cash-Flow & Performance Breakdown Table -->
                     <div class="assessment-card">
                         <h4 class="chart-card-title" style="margin-bottom: 6px;">
-                            Wissenschaftliche Risikobewertung & Historischer Stresstest
+                            Exakte Auswertung der historischen Anlage (Cash-Flow Matrix)
                         </h4>
                         <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px;">
-                            Vergleich der Risiko- und Ertragskennzahlen der ausgewählten Portfoliostruktur im Vergleich zu historischen Marktkrisen.
+                            Detaillierte Aufschlüsselung aller getätigten Zahlungsströme, Reinvestitionen und erzielten Renditekennzahlen.
                         </p>
 
                         <table class="assessment-table">
                             <thead>
                                 <tr>
-                                    <th>Kennzahl / Szenario</th>
-                                    <th>Wert / Ausprägung</th>
-                                    <th>Erklärung für die Anlagepraxis</th>
+                                    <th>Parameter / Kennzahl</th>
+                                    <th>Ergebnis / Betrag</th>
+                                    <th>Erläuterung &amp; Methodik</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Erwartete Rendite p.a.</strong></td>
-                                    <td id="tableExpReturn" style="font-weight: 700; color: var(--gold);">7.70 % p.a.</td>
-                                    <td>Langfristig prognostizierte geometrische Rendite vor Kosten &amp; Steuern.</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Volatilität (1-Sigma)</strong></td>
-                                    <td id="tableVolatility" style="font-weight: 600;">16.00 % p.a.</td>
-                                    <td>Statistischer Schwankungskorridor um den Erwartungswert in ca. 68 % aller Jahre.</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Maximaler historischer Drawdown</strong></td>
-                                    <td id="tableMaxDrawdown" style="font-weight: 600; color: var(--red-trend);">-56.0 %</td>
-                                    <td>Größter historischer Verlust vom Höchststand bis zum Tiefpunkt (z. B. Weltwirtschaftskrise 2008).</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Sharpe Ratio (Rf = 2,0 %)</strong></td>
-                                    <td id="tableSharpe" style="font-weight: 600;">0.36</td>
-                                    <td>Überrendite je Einheit eingegangenes Risiko. Höhere Werte signalisieren effizientere Portfolios.</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Stresstest: Finanzkrise 2008</strong></td>
-                                    <td id="tableCrisis2008" style="color: var(--red-trend); font-weight: 600;">ca. -56 %</td>
-                                    <td>Verlustentwicklung bei einem systemischen Aktiencrash mit Bankenkrise.</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Stresstest: Corona-Schock 2020</strong></td>
-                                    <td id="tableCrisisCorona" style="color: var(--red-trend); font-weight: 600;">ca. -36 %</td>
-                                    <td>Schneller Liquiditätsschock mit rascher V-förmiger Markterholung innerhalb weniger Monate.</td>
-                                </tr>
+                            <tbody id="backtestSummaryTableBody">
+                                <!-- Populated dynamically via app.js -->
                             </tbody>
                         </table>
 
                         <div class="compliance-note">
-                            <strong>Hinweis zur Methodik &amp; Risikotragfähigkeit:</strong> Alle dargestellten Berechnungen und Renditeerwartungen basieren auf historischen Kapitalmarktdaten und wissenschaftlichen Kapitalmarkttheorien (Markowitz, Fama-French). Wertentwicklungen der Vergangenheit sind kein verlässlicher Indikator für künftige Ergebnisse. Bei Rheinfinanz passen wir im persönlichen Beratungsgespräch die Allokation exakt an Ihre persönliche Risikotoleranz und Anlageziele an.
+                            <strong>Hinweis zur Methodik:</strong> Alle historischen Berechnungen spiegeln die reale Wertentwicklung unter Berücksichtigung von Reinvestitionen (Total Return in Euro) wider. Für die persönliche Rendite p.a. wird der interne Zinsfuß (Money-Weighted Rate of Return / IRR) verwendet, der den genauen Zeitpunkt jedes einzelnen Ein- und Auszahlungsvorgangs exakt gewichtet. Wertentwicklungen der Vergangenheit sind kein verlässlicher Indikator für künftige Ergebnisse.
                         </div>
                     </div>
 
