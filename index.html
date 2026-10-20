@@ -42,6 +42,12 @@
                     </svg>
                     Markt-Charts
                 </a>
+                <a href="#historical-backtest" class="nav-link-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Historischer Vergleich
+                </a>
                 <a href="#strategy-lab" class="nav-link-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
@@ -81,13 +87,8 @@
                         </div>
                     </div>
 
-                    <div class="chart-tabs">
-                        <button class="chart-tab-btn active" onclick="selectIndex(INDEX_CONFIG[0])">MSCI World</button>
-                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[1])">S&amp;P 500</button>
-                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[2])">Nasdaq 100</button>
-                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[3])">DAX 40</button>
-                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[5])">Emerging</button>
-                        <button class="chart-tab-btn" onclick="selectIndex(INDEX_CONFIG[7])">Gold</button>
+                    <div class="chart-tabs" id="chartTabs">
+                        <!-- Dynamisch generiert via app.js -->
                     </div>
                 </div>
 
@@ -95,10 +96,92 @@
                 <div class="tradingview-container-wrapper" id="tradingview_widget_container">
                     <!-- Widget script injected via app.js -->
                 </div>
+
+                <!-- Instrument Details Card (ISIN, WKN, TER, Return, Volatility, Sharpe, Drawdown) -->
+                <div class="instrument-details-box" id="instrumentDetailsBox">
+                    <!-- Dynamisch generiert via app.js -->
+                </div>
             </div>
         </section>
 
-        <!-- ==================== SECTION 2: STRATEGIE-LABOR & RECHNER ==================== -->
+        <!-- ==================== SECTION 2: HISTORISCHER VERGLEICH & BACKTEST ==================== -->
+        <section id="historical-backtest" style="margin-bottom: 50px;">
+            <div class="section-headline">
+                <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Historischer Rendite- &amp; Drawdown-Vergleich (Vollständige Historie)
+                </h2>
+                <p>Vergleichen Sie die tatsächliche historische Wertentwicklung und Drawdowns aller 11 Indizes und Fonds über ihren gesamten verfügbaren Zeitraum.</p>
+            </div>
+
+            <div class="backtest-card">
+                <!-- Controls bar -->
+                <div class="backtest-controls-bar">
+                    <div class="control-group">
+                        <label class="control-label">Historischer Zeitraum:</label>
+                        <div class="timeframe-pills" id="timeframePills">
+                            <button class="timeframe-pill active" data-period="gpo">Seit GPO (März 2022)</button>
+                            <button class="timeframe-pill" data-period="fio">Seit FIO (Juni 2023)</button>
+                            <button class="timeframe-pill" data-period="5y">Letzte 5 Jahre</button>
+                            <button class="timeframe-pill" data-period="10y">Letzte 10 Jahre</button>
+                            <button class="timeframe-pill" data-period="max">Maximaler Zeitraum</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Darstellungsmodus:</label>
+                        <div class="mode-pills" id="modePills">
+                            <button class="mode-pill active" data-mode="indexed">Indexierte Rendite (Basis 100)</button>
+                            <button class="mode-pill" data-mode="drawdown">Unterwasser-Chart (Drawdown %)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset filter chips -->
+                <div class="asset-selector-bar">
+                    <span class="asset-selector-title">Aktive Kurven im Chart:</span>
+                    <div class="asset-chips-group" id="assetChipsGroup">
+                        <!-- Dynamically populated chips -->
+                    </div>
+                </div>
+
+                <!-- Comparison Chart Canvas Container -->
+                <div class="backtest-chart-container">
+                    <canvas id="historicalComparisonChart"></canvas>
+                </div>
+
+                <!-- Comprehensive Historical Metrics Table -->
+                <div class="backtest-table-wrapper">
+                    <h4 class="table-subtitle">Kennzahlen-Matrix aller 11 Instrumente (Historische Ist-Daten)</h4>
+                    <div class="table-responsive">
+                        <table class="analytics-table" id="historicalComparisonTable">
+                            <thead>
+                                <tr>
+                                    <th>Instrument / Index</th>
+                                    <th>Kategorie</th>
+                                    <th>Letzter Kurs</th>
+                                    <th>1-Tages &Delta;</th>
+                                    <th>1-Jahr</th>
+                                    <th>3-Jahre (p.a.)</th>
+                                    <th>Gesamtrendite</th>
+                                    <th>CAGR p.a.</th>
+                                    <th>Volatilität p.a.</th>
+                                    <th>Max Drawdown</th>
+                                    <th>Sharpe Ratio</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historicalComparisonTableBody">
+                                <!-- Populated dynamically via app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SECTION 3: STRATEGIE-LABOR & RECHNER ==================== -->
         <section id="strategy-lab">
             <div class="section-headline">
                 <h2>
@@ -364,6 +447,8 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/catalog_data.js"></script>
+    <script src="js/history_data.js"></script>
     <script src="js/strategies.js"></script>
     <script src="js/app.js"></script>
 </body>

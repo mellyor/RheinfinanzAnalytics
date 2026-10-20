@@ -772,3 +772,221 @@ body {
 .footer-links a:hover {
     color: var(--gold-dark);
 }
+
+/* ==========================================================================
+   Instrument Details Box & Section 2 Backtest Styling
+   ========================================================================== */
+.instrument-details-box {
+    margin-top: 18px;
+    padding: 16px 20px;
+    background: #F8FAFC;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.inst-metric-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.inst-metric-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.inst-metric-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--navy-dark);
+}
+
+/* Section 2: Historical Comparison & Backtest Card */
+.backtest-card {
+    background: var(--white);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+}
+
+.backtest-controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.control-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--navy-dark);
+}
+
+.timeframe-pills, .mode-pills {
+    display: flex;
+    gap: 6px;
+    background: #F1F5F9;
+    padding: 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.timeframe-pill, .mode-pill {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: var(--font-heading);
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.timeframe-pill:hover, .mode-pill:hover {
+    color: var(--navy-dark);
+}
+
+.timeframe-pill.active, .mode-pill.active {
+    background: var(--navy-primary);
+    color: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.asset-selector-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.asset-selector-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--navy-dark);
+    margin-right: 4px;
+}
+
+.asset-chips-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.asset-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border-subtle);
+    background: var(--white);
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.asset-chip:hover {
+    border-color: var(--gold);
+    color: var(--navy-dark);
+}
+
+.asset-chip.active {
+    border-color: var(--chip-color, var(--navy-primary));
+    background: rgba(17, 45, 78, 0.05);
+    color: var(--navy-dark);
+    font-weight: 700;
+}
+
+.asset-chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--chip-color, var(--gold));
+}
+
+.backtest-chart-container {
+    height: 440px;
+    width: 100%;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.backtest-table-wrapper {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.table-subtitle {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--navy-dark);
+    margin-bottom: 12px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    text-align: left;
+}
+
+.analytics-table th {
+    background: #F8FAFC;
+    padding: 10px 12px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--navy-primary);
+    border-bottom: 2px solid var(--border-subtle);
+    white-space: nowrap;
+}
+
+.analytics-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-dark);
+    white-space: nowrap;
+}
+
+.analytics-table tbody tr:hover {
+    background: rgba(17, 45, 78, 0.02);
+}
+
+.metric-positive {
+    color: var(--green-trend);
+    font-weight: 600;
+}
+
+.metric-negative {
+    color: var(--red-trend);
+    font-weight: 600;
+}

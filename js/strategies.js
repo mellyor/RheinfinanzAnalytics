@@ -52,6 +52,26 @@ const ASSET_CLASSES = {
 };
 
 const PRESET_STRATEGIES = {
+    beck_gpo: {
+        id: 'beck_gpo',
+        name: 'Global Portfolio One (Dr. Beck)',
+        subtitle: 'Wissenschaftliches Weltportfolio mit Krisenreserve',
+        icon: 'trending-up',
+        riskLevel: 'Dynamisch / Antizyklisch',
+        riskScore: 4,
+        weights: {
+            world_equity: 0.80,
+            emerging_equity: 0.05,
+            bonds: 0.0,
+            gold: 0.0,
+            cash: 0.15
+        },
+        description: 'Das Konzept nach Dr. Andreas Beck: Investiert weltweit in Produktivkapital (über 8.000 Unternehmen) und hält antizyklisch eine Investitionsreserve (Geldmarkt/Anleihen), die in schweren Marktkrisen zum Nachkauf genutzt wird.',
+        expectedReturn: 0.078,
+        volatility: 0.138,
+        historicalMaxDrawdown: -0.28,
+        sharpeRatio: 0.42
+    },
     world_100: {
         id: 'world_100',
         name: '100 % All-World Aktien',
