@@ -194,6 +194,13 @@ let tableSortAsc = false;
 
 // Section 2: Historical Portfolio & Savings Plan Backtest State
 let trajectoryChartInstance = null;
+let backtestPortfolioMode = 'preset'; // 'preset' or 'coresatellite'
+let coreAssetId = 'msci_world';
+let coreWeightPct = 80;
+let satelliteItems = [
+    { id: 'sat_1', assetId: 'gold_eur', weightPct: 10 },
+    { id: 'sat_2', assetId: 'bitcoin_eur', weightPct: 10 }
+];
 let extraDepositsList = [];
 let withdrawalsList = [];
 
@@ -411,9 +418,27 @@ function initHistoricalComparisonModule() {
     initCustomDateControls();
     initModePills();
     initQuickActionButtons();
+    initMatrixCollapsible();
     initTableSorting();
     renderHistoricalTable();
     initHistoricalChart();
+}
+
+function initMatrixCollapsible() {
+    const btnToggle = document.getElementById('btnToggleMatrix');
+    const matrixContent = document.getElementById('matrixCollapsibleContent');
+    const matrixWrap = document.getElementById('matrixCollapsibleWrapper');
+    const toggleText = document.getElementById('matrixToggleText');
+
+    if (btnToggle && matrixContent && matrixWrap) {
+        btnToggle.addEventListener('click', () => {
+            const isOpen = matrixWrap.classList.toggle('open');
+            matrixContent.style.display = isOpen ? 'block' : 'none';
+            if (toggleText) {
+                toggleText.textContent = isOpen ? 'Matrix ausblenden' : 'Matrix einblenden';
+            }
+        });
+    }
 }
 
 function initQuickActionButtons() {
@@ -605,24 +630,21 @@ function renderHistoricalTable() {
         tr.title = 'Klicken, um diesen Index im Chart ein- oder auszublenden';
         tr.innerHTML = `
             <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${color};"></span>
-                    <div>
-                        <div style="font-weight: 700; color: var(--navy-dark);">${item.name}</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">${item.isin || item.ticker}</div>
-                    </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: ${color}; flex-shrink: 0;"></span>
+                    <span style="font-weight: 700; color: var(--navy-dark); font-size: 0.79rem; white-space: nowrap;">${item.name}</span>
                 </div>
             </td>
-            <td><span style="font-size: 0.74rem; background: #F1F5F9; padding: 2px 7px; border-radius: 4px;">${item.category}</span></td>
-            <td class="${dayClass}">${dayStr}</td>
-            <td class="${m.return1Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret1YStr}</td>
-            <td class="${m.return3Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret3YStr}</td>
-            <td class="metric-positive" style="font-weight: 700;">${totRetStr}</td>
-            <td style="font-weight: 700; color: var(--navy-primary);">${cagrStr}</td>
-            <td>${volStr}</td>
-            <td class="metric-negative">${ddStr}</td>
-            <td style="font-weight: 600;">${sharpeStr}</td>
-            <td style="font-weight: 700; color: var(--gold-dark);">${sortinoStr}</td>
+            <td><span style="font-size: 0.68rem; background: #F1F5F9; padding: 2px 5px; border-radius: 3px; white-space: nowrap;">${item.category}</span></td>
+            <td class="num-col ${dayClass}">${dayStr}</td>
+            <td class="num-col ${m.return1Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret1YStr}</td>
+            <td class="num-col ${m.return3Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret3YStr}</td>
+            <td class="num-col metric-positive" style="font-weight: 700;">${totRetStr}</td>
+            <td class="num-col" style="font-weight: 700; color: var(--navy-primary);">${cagrStr}</td>
+            <td class="num-col">${volStr}</td>
+            <td class="num-col metric-negative">${ddStr}</td>
+            <td class="num-col" style="font-weight: 600;">${sharpeStr}</td>
+            <td class="num-col" style="font-weight: 700; color: var(--gold-dark);">${sortinoStr}</td>
         `;
 
         tr.addEventListener('click', () => {
@@ -667,11 +689,23 @@ function initHistoricalChart() {
                     borderColor: '#D4AF37',
                     borderWidth: 1.5,
                     padding: 12,
+                    itemSort: function(a, b) {
+                        // Dynamically sort tooltips descending by value at mouse hover position:
+                        // Top performer / highest chart line is always first!
+                        return b.parsed.y - a.parsed.y;
+                    },
                     callbacks: {
                         label: function(context) {
                             const val = context.parsed.y;
                             if (currentChartMode === 'drawdown') {
                                 return ` ${context.dataset.label}: ${val.toFixed(2)} % Drawdown`;
+                            } else if (currentChartMode === 'price') {
+                                const cur = context.dataset.currency === 'USD' ? '$' : '€';
+                                if (val >= 1000) {
+                                    return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
+                                } else {
+                                    return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ${cur}`;
+                                }
                             } else {
                                 return ` ${context.dataset.label}: ${val.toFixed(1)} (Index Basis 100)`;
                             }
@@ -694,7 +728,11 @@ function initHistoricalChart() {
                         color: '#0A192F',
                         font: { size: 11, weight: 'bold' },
                         callback: function(value) {
-                            return currentChartMode === 'drawdown' ? `${value} %` : value;
+                            if (currentChartMode === 'drawdown') return `${value} %`;
+                            if (currentChartMode === 'price') {
+                                return value >= 1000 ? `${Math.round(value/1000).toLocaleString('de-DE')}k €` : `${value.toLocaleString('de-DE')} €`;
+                            }
+                            return value;
                         }
                     }
                 }
@@ -784,6 +822,8 @@ function updateHistoricalChart() {
             if (currentChartMode === 'drawdown') {
                 const dd = ((lastKnown - peak) / peak) * 100;
                 dataPoints.push(Math.round(dd * 100) / 100);
+            } else if (currentChartMode === 'price') {
+                dataPoints.push(Math.round(lastKnown * 100) / 100);
             } else {
                 const indexed = (lastKnown / basePrice) * 100;
                 dataPoints.push(Math.round(indexed * 10) / 10);
@@ -806,6 +846,7 @@ function updateHistoricalChart() {
         datasets.push({
             label: asset.name,
             data: dataPoints,
+            currency: asset.currency || 'EUR',
             borderColor: color,
             backgroundColor: bgColor,
             fill: fill,
@@ -827,6 +868,7 @@ function updateHistoricalChart() {
 
 function initBacktestModule() {
     initBacktestInputs();
+    initCoreSatelliteControls();
     initBacktestChart();
     updateBacktestAssetBadge();
     runHistoricalBacktest();
@@ -890,7 +932,7 @@ function initBacktestInputs() {
         });
     });
 
-    // Collapsible Accordions
+    // Collapsible Accordions for Extra Cashflows
     const headerExtra = document.getElementById('headerExtraDeposits');
     const wrapExtra = document.getElementById('wrapExtraDeposits');
     if (headerExtra && wrapExtra) {
@@ -923,6 +965,152 @@ function initBacktestInputs() {
     }
 }
 
+function initCoreSatelliteControls() {
+    // Mode tabs (Preset vs Core-Satellite)
+    const tabs = document.querySelectorAll('#portfolioModeTabs .portfolio-mode-tab');
+    const presetContainer = document.getElementById('presetPortfolioContainer');
+    const coreSatContainer = document.getElementById('coreSatelliteContainer');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            backtestPortfolioMode = tab.getAttribute('data-mode');
+
+            if (backtestPortfolioMode === 'coresatellite') {
+                if (presetContainer) presetContainer.style.display = 'none';
+                if (coreSatContainer) coreSatContainer.style.display = 'block';
+                renderSatellitesList();
+            } else {
+                if (presetContainer) presetContainer.style.display = 'block';
+                if (coreSatContainer) coreSatContainer.style.display = 'none';
+            }
+            runHistoricalBacktest();
+        });
+    });
+
+    // Core asset selector
+    const selectCore = document.getElementById('selectCoreAsset');
+    if (selectCore) {
+        selectCore.addEventListener('change', (e) => {
+            coreAssetId = e.target.value;
+            runHistoricalBacktest();
+        });
+    }
+
+    // Core weight slider
+    const sliderCore = document.getElementById('sliderCoreWeight');
+    const dispCore = document.getElementById('dispCoreWeight');
+    const dispCoreLabel = document.getElementById('dispCoreWeightLabel');
+
+    if (sliderCore) {
+        sliderCore.addEventListener('input', (e) => {
+            coreWeightPct = parseInt(e.target.value, 10);
+            if (dispCore) dispCore.textContent = `${coreWeightPct} %`;
+            if (dispCoreLabel) dispCoreLabel.textContent = `${coreWeightPct} %`;
+            updateCoreSatelliteAllocationBadge();
+            runHistoricalBacktest();
+        });
+    }
+
+    // Add satellite button
+    const btnAddSat = document.getElementById('btnAddSatellite');
+    if (btnAddSat) {
+        btnAddSat.addEventListener('click', () => {
+            const totalSat = satelliteItems.reduce((s, i) => s + (i.weightPct || 0), 0);
+            const remaining = Math.max(5, 100 - coreWeightPct - totalSat);
+            const newId = `sat_${Date.now()}`;
+            
+            const usedAssets = new Set(satelliteItems.map(s => s.assetId));
+            const available = ASSET_CATALOG.find(a => !usedAssets.has(a.id) && a.id !== coreAssetId) || ASSET_CATALOG[0];
+
+            satelliteItems.push({
+                id: newId,
+                assetId: available.id,
+                weightPct: remaining
+            });
+
+            renderSatellitesList();
+            runHistoricalBacktest();
+        });
+    }
+}
+
+function renderSatellitesList() {
+    const list = document.getElementById('satellitesList');
+    if (!list) return;
+
+    list.innerHTML = '';
+    satelliteItems.forEach((sat, idx) => {
+        const row = document.createElement('div');
+        row.className = 'satellite-row';
+
+        let optionsHtml = '';
+        ASSET_CATALOG.forEach(asset => {
+            const isSelected = asset.id === sat.assetId;
+            optionsHtml += `<option value="${asset.id}" ${isSelected ? 'selected' : ''}>${asset.name} (${asset.category})</option>`;
+        });
+
+        row.innerHTML = `
+            <select class="sat-asset-select">
+                ${optionsHtml}
+            </select>
+            <div class="sat-weight-wrapper">
+                <input type="number" class="sat-weight-input" min="1" max="30" step="1" value="${sat.weightPct}">
+                <span class="sat-weight-suffix">%</span>
+            </div>
+            <button type="button" class="btn-remove-row" title="Satellit entfernen">✕</button>
+        `;
+
+        row.querySelector('.sat-asset-select').addEventListener('change', (e) => {
+            sat.assetId = e.target.value;
+            runHistoricalBacktest();
+        });
+
+        row.querySelector('.sat-weight-input').addEventListener('input', (e) => {
+            sat.weightPct = Math.max(0, parseInt(e.target.value, 10) || 0);
+            updateCoreSatelliteAllocationBadge();
+            runHistoricalBacktest();
+        });
+
+        row.querySelector('.btn-remove-row').addEventListener('click', () => {
+            satelliteItems.splice(idx, 1);
+            renderSatellitesList();
+            updateCoreSatelliteAllocationBadge();
+            runHistoricalBacktest();
+        });
+
+        list.appendChild(row);
+    });
+
+    updateCoreSatelliteAllocationBadge();
+}
+
+function updateCoreSatelliteAllocationBadge() {
+    const totalSatellites = satelliteItems.reduce((sum, item) => sum + (item.weightPct || 0), 0);
+    const totalAlloc = coreWeightPct + totalSatellites;
+    const remainingForSatellites = Math.max(0, 100 - coreWeightPct);
+
+    const dispRemaining = document.getElementById('dispSatellitesRemaining');
+    if (dispRemaining) {
+        dispRemaining.textContent = `Verbleibend: ${remainingForSatellites} %`;
+    }
+
+    const badge = document.getElementById('dispTotalAllocationBadge');
+    if (badge) {
+        if (totalAlloc === 100) {
+            badge.className = 'allocation-badge success';
+            badge.textContent = '✓ 100 % vollständig';
+        } else if (totalAlloc < 100) {
+            badge.className = 'allocation-badge warning';
+            badge.textContent = `Noch ${100 - totalAlloc} % offen`;
+        } else {
+            badge.className = 'allocation-badge warning';
+            badge.textContent = `+${totalAlloc - 100} % Überhang`;
+        }
+    }
+}
+
 function addDynamicCashflowRow(containerId, type) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -950,7 +1138,6 @@ function addDynamicCashflowRow(containerId, type) {
 
     container.appendChild(row);
 
-    // Open wrapper if not already open
     const wrapper = container.closest('.collapsible-wrapper');
     if (wrapper) wrapper.classList.add('open');
 
@@ -984,17 +1171,28 @@ function updateBacktestAssetBadge() {
 }
 
 function getEarliestDateForCurrentSelection() {
-    const assetSelect = document.getElementById('backtestAssetSelect');
     const historyData = window.HISTORY_DATA ? window.HISTORY_DATA.assets : {};
-    if (!assetSelect || !historyData) return '2019-10-20';
+    if (!historyData) return '2019-10-20';
 
-    const selVal = assetSelect.value;
     let requiredAssets = [];
 
-    if (BACKTEST_STRATEGIES[selVal]) {
-        requiredAssets = Object.keys(BACKTEST_STRATEGIES[selVal].weights);
+    if (backtestPortfolioMode === 'coresatellite') {
+        if (BACKTEST_STRATEGIES[coreAssetId]) {
+            requiredAssets.push(...Object.keys(BACKTEST_STRATEGIES[coreAssetId].weights));
+        } else {
+            requiredAssets.push(coreAssetId);
+        }
+        satelliteItems.forEach(sat => {
+            if (sat.assetId) requiredAssets.push(sat.assetId);
+        });
     } else {
-        requiredAssets = [selVal];
+        const assetSelect = document.getElementById('backtestAssetSelect');
+        const selVal = assetSelect ? assetSelect.value : 'sp500';
+        if (BACKTEST_STRATEGIES[selVal]) {
+            requiredAssets = Object.keys(BACKTEST_STRATEGIES[selVal].weights);
+        } else {
+            requiredAssets = [selVal];
+        }
     }
 
     let maxStartDate = '1970-01-01';
@@ -1043,6 +1241,9 @@ function initBacktestChart() {
                     borderColor: '#D4AF37',
                     borderWidth: 1.5,
                     padding: 12,
+                    itemSort: function(a, b) {
+                        return b.parsed.y - a.parsed.y;
+                    },
                     callbacks: {
                         label: function(context) {
                             return ` ${context.dataset.label}: ${Math.round(context.parsed.y).toLocaleString('de-DE')} €`;
@@ -1078,24 +1279,61 @@ function runHistoricalBacktest() {
     const historyData = window.HISTORY_DATA ? window.HISTORY_DATA.assets : {};
     if (!historyData || Object.keys(historyData).length === 0) return;
 
-    const assetSelect = document.getElementById('backtestAssetSelect');
     const inpStart = document.getElementById('inputBacktestStart');
     const inpCapital = document.getElementById('inputInitialCapital');
     const inpMonthly = document.getElementById('inputMonthlyRate');
 
-    if (!assetSelect || !inpStart) return;
+    if (!inpStart) return;
 
-    const selVal = assetSelect.value;
     let weights = {};
     let strategyTitle = '';
 
-    if (BACKTEST_STRATEGIES[selVal]) {
-        weights = BACKTEST_STRATEGIES[selVal].weights;
-        strategyTitle = BACKTEST_STRATEGIES[selVal].name;
+    if (backtestPortfolioMode === 'coresatellite') {
+        const coreFrac = coreWeightPct / 100;
+        let coreName = '';
+
+        if (BACKTEST_STRATEGIES[coreAssetId]) {
+            coreName = BACKTEST_STRATEGIES[coreAssetId].name;
+            for (const [subId, subWeight] of Object.entries(BACKTEST_STRATEGIES[coreAssetId].weights)) {
+                weights[subId] = (weights[subId] || 0) + subWeight * coreFrac;
+            }
+        } else {
+            const coreItem = getAssetById(coreAssetId);
+            coreName = coreItem.name;
+            weights[coreAssetId] = (weights[coreAssetId] || 0) + coreFrac;
+        }
+
+        const satDescriptions = [];
+        satelliteItems.forEach(sat => {
+            if (sat.assetId && sat.weightPct > 0) {
+                const satFrac = sat.weightPct / 100;
+                weights[sat.assetId] = (weights[sat.assetId] || 0) + satFrac;
+                const item = getAssetById(sat.assetId);
+                satDescriptions.push(`${item.name} (${sat.weightPct} %)`);
+            }
+        });
+
+        // Normalize weights if sum differs from 1.0
+        const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+        if (totalWeight > 0) {
+            for (const k in weights) {
+                weights[k] /= totalWeight;
+            }
+        }
+
+        strategyTitle = `Core-Satellite: Core ${coreName} (${coreWeightPct} %) + Satelliten: ${satDescriptions.join(', ') || 'Keine'}`;
     } else {
-        weights = { [selVal]: 1.0 };
-        const item = getAssetById(selVal);
-        strategyTitle = `${item.fullName || item.name} (100 %)`;
+        const assetSelect = document.getElementById('backtestAssetSelect');
+        const selVal = assetSelect ? assetSelect.value : 'sp500';
+
+        if (BACKTEST_STRATEGIES[selVal]) {
+            weights = BACKTEST_STRATEGIES[selVal].weights;
+            strategyTitle = BACKTEST_STRATEGIES[selVal].name;
+        } else {
+            weights = { [selVal]: 1.0 };
+            const item = getAssetById(selVal);
+            strategyTitle = `${item.fullName || item.name} (100 %)`;
+        }
     }
 
     const initialCapital = Math.max(0, parseFloat(inpCapital ? inpCapital.value : 0) || 0);
@@ -1176,7 +1414,6 @@ function runHistoricalBacktest() {
     let peakValue = 0;
     let maxDrawdownPct = 0;
 
-    // Helper to get price on date t
     function getPrice(id, dt) {
         if (priceMaps[id].has(dt)) {
             lastKnownPrices[id] = priceMaps[id].get(dt);
@@ -1198,12 +1435,11 @@ function runHistoricalBacktest() {
 
     // Iterate through trading dates
     tradingDates.forEach((dt, idx) => {
-        // Update prices
         assetIds.forEach(id => { getPrice(id, dt); });
 
         const currentMonth = dt.substring(0, 7); // YYYY-MM
 
-        // 1. Check for monthly savings execution (1st trading day of new month, after start month)
+        // 1. Monthly savings execution (1st trading day of new month)
         if (lastKnownMonth && currentMonth !== lastKnownMonth && monthlyRate > 0) {
             assetIds.forEach(id => {
                 const p = lastKnownPrices[id];
@@ -1217,7 +1453,7 @@ function runHistoricalBacktest() {
         }
         lastKnownMonth = currentMonth;
 
-        // 2. Check for extra deposits on this date
+        // 2. Extra deposits
         extraDeposits.forEach(dep => {
             if (dep.date === dt) {
                 assetIds.forEach(id => {
@@ -1232,7 +1468,7 @@ function runHistoricalBacktest() {
             }
         });
 
-        // 3. Check for withdrawals on this date
+        // 3. Withdrawals
         withdrawals.forEach(w => {
             if (w.date === dt) {
                 let currentVal = 0;
@@ -1257,7 +1493,7 @@ function runHistoricalBacktest() {
 
         const netInvested = cumulativeDeposits - cumulativeWithdrawals;
 
-        // Track max drawdown of portfolio equity
+        // Track max drawdown
         if (currentPortfolioVal > peakValue) {
             peakValue = currentPortfolioVal;
         }
@@ -1369,7 +1605,7 @@ function runHistoricalBacktest() {
     if (summaryTbody) {
         summaryTbody.innerHTML = `
             <tr>
-                <td><strong>Gewähltes Anlageinstrument / Portfolio</strong></td>
+                <td><strong>Gewähltes Portfolio / Struktur</strong></td>
                 <td style="font-weight: 700; color: var(--navy-dark);">${strategyTitle}</td>
                 <td>Reale Total-Return-Preise inkl. automatischer Dividenden- und Ertragsreinvestition.</td>
             </tr>
@@ -1381,7 +1617,7 @@ function runHistoricalBacktest() {
             <tr>
                 <td><strong>Start-Einmalanlage</strong></td>
                 <td style="font-weight: 600;">${initialCapital.toLocaleString('de-DE')} €</td>
-                <td>Sofortkauf von Fondsanteilen am Starttag zu historischen Tagesschlusskursen.</td>
+                <td>Sofortkauf von Anteilen am Starttag zu historischen Tagesschlusskursen.</td>
             </tr>
             <tr>
                 <td><strong>Monatliche Sparplanausführungen</strong></td>
@@ -1501,4 +1737,5 @@ function formatDateDE(isoDate) {
     if (parts.length !== 3) return isoDate;
     return `${parts[2]}.${parts[1]}.${parts[0]}`;
 }
+
 
