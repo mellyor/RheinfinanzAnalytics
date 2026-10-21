@@ -185,7 +185,30 @@ let focusedAssetId = 'msci_world';
 let currentPeriod = '5y'; // '1y', '3y', '5y', '10y', 'max', 'custom'
 let customStartDate = null;
 let customEndDate = null;
-let currentChartMode = 'indexed'; // 'indexed' or 'drawdown'
+let currentChartMode = 'price'; // 'price' or 'drawdown'
+let currentCurrency = 'EUR'; // 'EUR' or 'USD'
+let _FX_CACHE_MAP = null;
+
+function getFxRate(dateStr) {
+    if (!window.HISTORY_DATA || !window.HISTORY_DATA.fx || !window.HISTORY_DATA.fx.EUR_USD) {
+        return 1.1231;
+    }
+    if (!_FX_CACHE_MAP) {
+        _FX_CACHE_MAP = new Map(window.HISTORY_DATA.fx.EUR_USD);
+    }
+    if (_FX_CACHE_MAP.has(dateStr)) {
+        return _FX_CACHE_MAP.get(dateStr);
+    }
+    let d = new Date(dateStr);
+    for (let i = 0; i < 7; i++) {
+        d.setDate(d.getDate() - 1);
+        const prevDt = d.toISOString().split('T')[0];
+        if (_FX_CACHE_MAP.has(prevDt)) {
+            return _FX_CACHE_MAP.get(prevDt);
+        }
+    }
+    return 1.1231;
+}
 let historicalChartInstance = null;
 
 // Table Sorting State
@@ -385,9 +408,13 @@ function syncCardStates() {
 
 function updateSelectionCounter() {
     const counter = document.getElementById('selectionCounter');
+    const badge = document.getElementById('indicesCountBadge');
+    const count = activeBacktestAssets.size;
     if (counter) {
-        const count = activeBacktestAssets.size;
         counter.textContent = `${count} von 11 Indizes im Chart aktiv`;
+    }
+    if (badge) {
+        badge.textContent = `${count} im Chart aktiv`;
     }
 }
 
@@ -396,7 +423,15 @@ function renderInstrumentDetails(item) {
     if (!box) return;
 
     const m = item.metrics || {};
-    const priceFormatted = `${(m.latestPrice || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${item.currency === 'USD' ? '$' : '€'}`;
+    const eurPrice = m.latestPrice || 0;
+    let priceFormatted = '';
+    if (currentCurrency === 'USD') {
+        const rate = getFxRate(m.endDate || '2026-10-21');
+        const usdPrice = eurPrice * rate;
+        priceFormatted = `${usdPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ (${eurPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €)`;
+    } else {
+        priceFormatted = `${eurPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    }
     const color = ASSET_COLORS[item.id] || '#112D4E';
 
     box.innerHTML = `
@@ -450,14 +485,37 @@ function renderInstrumentDetails(item) {
 }
 
 function initHistoricalComparisonModule() {
+    initIndicesCollapsible();
     initTimeframePills();
     initCustomDateControls();
     initModePills();
+    initCurrencyPills();
     initQuickActionButtons();
     initMatrixCollapsible();
     initTableSorting();
     renderHistoricalTable();
     initHistoricalChart();
+}
+
+function initIndicesCollapsible() {
+    const btnToggle = document.getElementById('btnToggleIndices');
+    const content = document.getElementById('indicesCollapsibleContent');
+    const wrap = document.getElementById('indicesCollapsibleWrapper');
+    const toggleText = document.getElementById('indicesToggleText');
+    const chevron = document.getElementById('indicesChevron');
+
+    if (btnToggle && content && wrap) {
+        btnToggle.addEventListener('click', () => {
+            const isOpen = wrap.classList.toggle('open');
+            content.style.display = isOpen ? 'block' : 'none';
+            if (toggleText) {
+                toggleText.textContent = isOpen ? 'Indizes einklappen' : 'Indizes auswählen / einblenden';
+            }
+            if (chevron) {
+                chevron.textContent = isOpen ? '▲' : '▼';
+            }
+        });
+    }
 }
 
 function initMatrixCollapsible() {
@@ -586,6 +644,35 @@ function initModePills() {
             pill.classList.add('active');
             currentChartMode = pill.getAttribute('data-mode');
             updateHistoricalChart();
+        });
+    });
+}
+
+function initCurrencyPills() {
+    const pills = document.querySelectorAll('.currency-pill');
+    const btnModePrice = document.getElementById('btnModePrice');
+
+    pills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            pills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            currentCurrency = pill.getAttribute('data-curr'); // 'EUR' or 'USD'
+
+            // Update mode button label to reflect selected currency
+            if (btnModePrice) {
+                btnModePrice.textContent = (currentCurrency === 'USD') ? 'Kurs in $' : 'Kurs in €';
+            }
+
+            // If user clicked currency while in drawdown mode, switch to price mode to show the currency chart
+            if (currentChartMode !== 'price') {
+                const modePills = document.querySelectorAll('.mode-pill');
+                modePills.forEach(p => p.classList.remove('active'));
+                if (btnModePrice) btnModePrice.classList.add('active');
+                currentChartMode = 'price';
+            }
+
+            updateHistoricalChart();
+            renderInstrumentDetails(getAssetById(focusedAssetId));
         });
     });
 }
@@ -728,22 +815,24 @@ function initHistoricalChart() {
                     itemSort: function(a, b) {
                         // Dynamically sort tooltips descending by value at mouse hover position:
                         // Top performer / highest chart line is always first!
-                        return b.parsed.y - a.parsed.y;
+                        const valA = (a.parsed && a.parsed.y !== null && !isNaN(a.parsed.y)) ? a.parsed.y : -Infinity;
+                        const valB = (b.parsed && b.parsed.y !== null && !isNaN(b.parsed.y)) ? b.parsed.y : -Infinity;
+                        return valB - valA;
                     },
                     callbacks: {
                         label: function(context) {
-                            const val = context.parsed.y;
+                            const val = context.parsed ? context.parsed.y : null;
+                            if (val === null || isNaN(val)) return null;
+
                             if (currentChartMode === 'drawdown') {
                                 return ` ${context.dataset.label}: ${val.toFixed(2)} % Drawdown`;
-                            } else if (currentChartMode === 'price') {
-                                const cur = context.dataset.currency === 'USD' ? '$' : '€';
+                            } else {
+                                const cur = (currentCurrency === 'USD' || context.dataset.currency === 'USD') ? '$' : '€';
                                 if (val >= 1000) {
                                     return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
                                 } else {
                                     return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ${cur}`;
                                 }
-                            } else {
-                                return ` ${context.dataset.label}: ${val.toFixed(1)} (Index Basis 100)`;
                             }
                         }
                     }
@@ -765,10 +854,8 @@ function initHistoricalChart() {
                         font: { size: 11, weight: 'bold' },
                         callback: function(value) {
                             if (currentChartMode === 'drawdown') return `${value} %`;
-                            if (currentChartMode === 'price') {
-                                return value >= 1000 ? `${Math.round(value/1000).toLocaleString('de-DE')}k €` : `${value.toLocaleString('de-DE')} €`;
-                            }
-                            return value;
+                            const cur = currentCurrency === 'USD' ? '$' : '€';
+                            return value >= 1000 ? `${Math.round(value/1000).toLocaleString('de-DE')}k ${cur}` : `${value.toLocaleString('de-DE')} ${cur}`;
                         }
                     }
                 }
@@ -843,26 +930,33 @@ function updateHistoricalChart() {
         const priceMap = new Map();
         series.forEach(pt => priceMap.set(pt[0], pt[1]));
 
-        const basePrice = series[0][1];
-        let peak = basePrice;
-        let lastKnown = basePrice;
+        const firstDate = series[0][0];
+        let peak = -Infinity;
+        let lastKnownEur = null;
 
         const dataPoints = [];
 
         sampledDates.forEach(dt => {
-            if (priceMap.has(dt)) {
-                lastKnown = priceMap.get(dt);
+            if (dt < firstDate) {
+                dataPoints.push(null);
+                return;
             }
-            if (lastKnown > peak) peak = lastKnown;
+
+            if (priceMap.has(dt)) {
+                lastKnownEur = priceMap.get(dt);
+            } else if (lastKnownEur === null) {
+                lastKnownEur = series[0][1];
+            }
+
+            const rate = (currentCurrency === 'USD') ? getFxRate(dt) : 1.0;
+            const curVal = lastKnownEur * rate;
+            if (curVal > peak) peak = curVal;
 
             if (currentChartMode === 'drawdown') {
-                const dd = ((lastKnown - peak) / peak) * 100;
+                const dd = peak > 0 ? ((curVal - peak) / peak) * 100 : 0;
                 dataPoints.push(Math.round(dd * 100) / 100);
-            } else if (currentChartMode === 'price') {
-                dataPoints.push(Math.round(lastKnown * 100) / 100);
             } else {
-                const indexed = (lastKnown / basePrice) * 100;
-                dataPoints.push(Math.round(indexed * 10) / 10);
+                dataPoints.push(Math.round(curVal * 100) / 100);
             }
         });
 
@@ -882,14 +976,15 @@ function updateHistoricalChart() {
         datasets.push({
             label: asset.name,
             data: dataPoints,
-            currency: asset.currency || 'EUR',
+            currency: currentCurrency,
             borderColor: color,
             backgroundColor: bgColor,
             fill: fill,
             borderWidth: isSingleAsset ? 3.0 : 2.2,
             pointRadius: 0,
             pointHoverRadius: 5,
-            tension: 0.15
+            tension: 0.15,
+            spanGaps: false
         });
     });
 

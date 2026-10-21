@@ -852,6 +852,44 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
+.currency-switch-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.currency-pills {
+    display: flex;
+    gap: 4px;
+    background: #F1F5F9;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.currency-pill {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    padding: 4px 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.currency-pill:hover {
+    color: var(--navy-dark);
+}
+
+.currency-pill.active {
+    background: var(--gold-dark);
+    color: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
 .asset-selector-bar {
     display: flex;
     align-items: center;

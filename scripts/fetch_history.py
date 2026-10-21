@@ -365,6 +365,52 @@ def compute_metrics(series, rf_rate=0.025):
         "sortinoRatio": round(sortino, 2)
     }
 
+def fetch_fx_history(all_dates):
+    print("-> Fetching EUR/USD exchange rates (FRED DEXUSEU & EXGEUS)...", end='', flush=True)
+    import subprocess
+    # 1. Daily EUR/USD from FRED (1999 to 2026)
+    dexuseu = {}
+    try:
+        res1 = subprocess.run(['curl', '-s', '-m', '10', 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSEU'], capture_output=True, text=True)
+        lines1 = [l.strip().split(',') for l in res1.stdout.split('\n') if l.strip() and not l.startswith('obs')]
+        for r in lines1:
+            if len(r) >= 2 and r[1] not in ('.', ''):
+                try:
+                    dexuseu[r[0]] = round(float(r[1]), 4)
+                except ValueError:
+                    pass
+    except Exception as e:
+        print(f" (DEXUSEU failed: {e})", end="")
+
+    # 2. Monthly DEM/USD from FRED (1971 to 1998, 1 EUR = 1.95583 DEM)
+    exgeus = {}
+    try:
+        res2 = subprocess.run(['curl', '-s', '-m', '10', 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=EXGEUS'], capture_output=True, text=True)
+        lines2 = [l.strip().split(',') for l in res2.stdout.split('\n') if l.strip() and not l.startswith('obs')]
+        for r in lines2:
+            if len(r) >= 2 and r[1] not in ('.', ''):
+                try:
+                    exgeus[r[0][:7]] = round(1.95583 / float(r[1]), 4)
+                except ValueError:
+                    pass
+    except Exception as e:
+        print(f" (EXGEUS failed: {e})", end="")
+
+    sorted_dates = sorted(all_dates)
+    fx_series = []
+    last_r = 1.1231
+    for dt in sorted_dates:
+        if dt in dexuseu:
+            last_r = dexuseu[dt]
+        elif dt[:7] in exgeus:
+            last_r = exgeus[dt[:7]]
+        elif dt < '1971-01-01':
+            last_r = 0.5344
+        fx_series.append([dt, last_r])
+
+    print(f" OK: {len(fx_series)} points (1970 to today, latest: {last_r})")
+    return fx_series
+
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(base_dir, 'data')
@@ -420,6 +466,15 @@ def main():
         except Exception as e:
             print(f" FAILED: {e}")
             
+    # Fetch EUR/USD exchange rates for all dates
+    all_dates = set()
+    for asset in history_output["assets"].values():
+        for pt in asset["series"]:
+            all_dates.add(pt[0])
+    history_output["fx"] = {
+        "EUR_USD": fetch_fx_history(all_dates)
+    }
+
     # Save master history.json
     history_file = os.path.join(data_dir, 'history.json')
     with open(history_file, 'w', encoding='utf-8') as f:

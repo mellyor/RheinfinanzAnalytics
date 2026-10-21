@@ -59,12 +59,31 @@
                     </svg>
                     Historische Rendite- &amp; Drawdown-Analyse (11 Leitindizes &amp; Strategiefonds)
                 </h2>
-                <p>Klicken Sie auf die Indizes, um sie zur Analyse hinzuzufügen oder abzuwählen. Analysieren Sie indexierte Wertentwicklungen (Basis 100) oder historische Unterwasser-Drawdowns über maximale Zeiträume.</p>
+                <p>Klicken Sie auf die Indizes, um sie zur Analyse hinzuzufügen oder abzuwählen. Vergleichen Sie historische Kursverläufe in Euro (€) oder US-Dollar ($) mit tagesaktuellen Wechselkursen sowie maximale Unterwasser-Drawdowns.</p>
             </div>
 
-            <!-- 11 Interactive Toggle Cards Grid -->
-            <div class="indices-grid" id="indicesGrid">
-                <!-- Dynamisch generiert via app.js -->
+            <!-- 11 Interactive Toggle Cards Grid (Collapsible) -->
+            <div class="matrix-collapsible-wrapper" id="indicesCollapsibleWrapper" style="margin-bottom: 24px;">
+                <button type="button" class="matrix-toggle-header" id="btnToggleIndices">
+                    <div class="matrix-toggle-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        <span>Auswahl der Indizes &amp; ETFs (11 Instrumente)</span>
+                        <span class="matrix-pill-badge" id="indicesCountBadge">1 im Chart aktiv</span>
+                    </div>
+                    <div class="matrix-toggle-action">
+                        <span id="indicesToggleText">Indizes auswählen / einblenden</span>
+                        <span class="matrix-chevron" id="indicesChevron">▼</span>
+                    </div>
+                </button>
+                <div class="matrix-collapsible-content" id="indicesCollapsibleContent" style="display: none; padding: 14px 14px 4px 14px;">
+                    <div class="indices-grid" id="indicesGrid">
+                        <!-- Dynamisch generiert via app.js -->
+                    </div>
+                </div>
             </div>
 
             <!-- Main Interactive Chart Card -->
@@ -90,12 +109,22 @@
                         </div>
                     </div>
 
-                    <div class="control-group">
-                        <label class="control-label">Darstellungsmodus:</label>
-                        <div class="mode-pills" id="modePills">
-                            <button class="mode-pill active" data-mode="indexed">Indexierte Rendite (Basis 100)</button>
-                            <button class="mode-pill" data-mode="price">Kurs in Währung (€ / $)</button>
-                            <button class="mode-pill" data-mode="drawdown">Unterwasser-Chart (Drawdown %)</button>
+                    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <label class="control-label">Darstellungsmodus:</label>
+                            <div class="mode-pills" id="modePills">
+                                <button type="button" class="mode-pill active" id="btnModePrice" data-mode="price">Kurs in €</button>
+                                <button type="button" class="mode-pill" id="btnModeDrawdown" data-mode="drawdown">Drawdown</button>
+                            </div>
+                        </div>
+
+                        <!-- Rechtsseitig: Währungswahl € / $ -->
+                        <div class="currency-switch-box" id="currencySwitchBox">
+                            <span class="control-label">Währung:</span>
+                            <div class="currency-pills" id="currencyPills">
+                                <button type="button" class="currency-pill active" data-curr="EUR" title="Kurse in Euro (€) darstellen">€ Euro</button>
+                                <button type="button" class="currency-pill" data-curr="USD" title="Kurse in US-Dollar ($) mit historischem Tagesschluss-Wechselkurs darstellen">$ USD</button>
+                            </div>
                         </div>
                     </div>
                 </div>
