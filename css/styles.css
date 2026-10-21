@@ -1440,6 +1440,35 @@ body {
     font-weight: 700;
 }
 
+.risk-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-subtle);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.77rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--navy-dark);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.risk-toggle-btn:hover {
+    border-color: var(--gold-dark);
+    color: var(--gold-dark);
+    background: #F8FAFC;
+}
+
+.risk-toggle-btn.active {
+    background: var(--gold-dark);
+    color: var(--white);
+    border-color: var(--gold-dark);
+    box-shadow: var(--shadow-sm);
+}
+
 /* Portfolio Mode Tabs */
 .portfolio-mode-tabs {
     display: grid;

@@ -113,7 +113,7 @@
                         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                             <label class="control-label">Darstellungsmodus:</label>
                             <div class="mode-pills" id="modePills">
-                                <button type="button" class="mode-pill active" id="btnModePrice" data-mode="price">Kurs in €</button>
+                                <button type="button" class="mode-pill active" id="btnModePrice" data-mode="price">Wertzuwachs in € (Start 0 €)</button>
                                 <button type="button" class="mode-pill" id="btnModeDrawdown" data-mode="drawdown">Drawdown</button>
                             </div>
                         </div>
@@ -165,29 +165,40 @@
                                 <line x1="15" y1="3" x2="15" y2="21"></line>
                             </svg>
                             <span>Kennzahlen-Matrix aller 11 Instrumente (Historische Total-Return-Daten)</span>
-                            <span class="matrix-pill-badge">11 Spalten &bull; Sortierbar</span>
+                            <span class="matrix-pill-badge" id="matrixColCountBadge">10 Spalten &bull; Sortierbar</span>
                         </div>
                         <div class="matrix-toggle-action">
                             <span id="matrixToggleText">Matrix einblenden</span>
                             <span class="matrix-chevron" id="matrixChevron">▼</span>
                         </div>
                     </button>
-                    <div class="matrix-collapsible-content" id="matrixCollapsibleContent" style="display: none;">
+                    <div class="matrix-collapsible-content" id="matrixCollapsibleContent" style="display: none; padding: 14px 14px 8px 14px;">
+                        <div class="matrix-table-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <span style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Klicken Sie auf eine Spaltenüberschrift, um auf- oder absteigend zu sortieren.</span>
+                            <button type="button" id="btnToggleRiskCols" class="risk-toggle-btn" title="Sharpe Ratio &amp; Sortino Ratio ein- oder ausblenden">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <span id="riskToggleText">Sharpe &amp; Sortino Ratio einblenden</span>
+                            </button>
+                        </div>
                         <div class="table-responsive-no-scroll">
                             <table class="analytics-table compact-matrix-table" id="historicalComparisonTable">
                                 <thead>
                                     <tr>
                                         <th data-sort="name" class="sortable-th" title="Name des Index oder ETF">Instrument <span class="sort-icon"></span></th>
                                         <th data-sort="category" class="sortable-th" title="Asset-Klasse & Region">Kategorie <span class="sort-icon"></span></th>
-                                        <th data-sort="dayChangePct" class="sortable-th num-col" title="Veränderung zum Vortag">1 Tag <span class="sort-icon"></span></th>
-                                        <th data-sort="return1Y" class="sortable-th num-col" title="Rendite der letzten 12 Monate">1 Jahr <span class="sort-icon"></span></th>
-                                        <th data-sort="return3Y" class="sortable-th num-col" title="Annualisierte 3-Jahres-Rendite p.a.">3 J. p.a. <span class="sort-icon"></span></th>
+                                        <th data-sort="return1Y" class="sortable-th num-col" title="Kumulierte Gesamtrendite der letzten 12 Monate">1 Jahr <span class="sort-icon"></span></th>
+                                        <th data-sort="return3Y" class="sortable-th num-col" title="Kumulierte Gesamtrendite über die letzten 3 Jahre (nicht p.a.)">3 Jahre <span class="sort-icon"></span></th>
+                                        <th data-sort="return5Y" class="sortable-th num-col" title="Kumulierte Gesamtrendite über die letzten 5 Jahre">5 Jahre <span class="sort-icon"></span></th>
+                                        <th data-sort="return10Y" class="sortable-th num-col" title="Kumulierte Gesamtrendite über die letzten 10 Jahre">10 Jahre <span class="sort-icon"></span></th>
                                         <th data-sort="totalReturnPct" class="sortable-th num-col" title="Gesamtrendite über den maximal verfügbaren Zeitraum">Gesamt <span class="sort-icon"></span></th>
                                         <th data-sort="cagrPct" class="sortable-th num-col" title="Compound Annual Growth Rate (geometrisches Mittel p.a.)">CAGR <span class="sort-icon"></span></th>
                                         <th data-sort="volatilityPct" class="sortable-th num-col" title="Annualisierte Schwankungsbreite (Standardabweichung)">Vola p.a. <span class="sort-icon"></span></th>
                                         <th data-sort="maxDrawdownPct" class="sortable-th num-col" title="Maximaler historischer Verlust vom Höchst- zum Tiefststand">Max DD <span class="sort-icon"></span></th>
-                                        <th data-sort="sharpeRatio" class="sortable-th num-col" title="Überrendite je Gesamtrisiko (Rf = 2,0 %)">Sharpe <span class="sort-icon"></span></th>
-                                        <th data-sort="sortinoRatio" class="sortable-th num-col" title="Überrendite ausschließlich je Abwärtsrisiko (Rf = 2,0 %)">Sortino <span class="sort-icon"></span></th>
+                                        <th data-sort="sharpeRatio" class="sortable-th num-col risk-col" style="display: none;" title="Überrendite je Gesamtrisiko (Rf = 2,0 %)">Sharpe <span class="sort-icon"></span></th>
+                                        <th data-sort="sortinoRatio" class="sortable-th num-col risk-col" style="display: none;" title="Überrendite ausschließlich je Abwärtsrisiko (Rf = 2,0 %)">Sortino <span class="sort-icon"></span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="historicalComparisonTableBody">

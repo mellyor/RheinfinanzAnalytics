@@ -28,12 +28,13 @@
         "totalReturnPct": 659.15,
         "cagrPct": 12.61,
         "return1Y": 19.32,
-        "return3Y": 20.13,
-        "return5Y": 11.87,
+        "return3Y": 73.38,
+        "return5Y": 75.19,
+        "return10Y": 233.38,
         "volatilityPct": 15.26,
         "maxDrawdownPct": -33.63,
-        "sharpeRatio": 0.66,
-        "sortinoRatio": 0.91
+        "sharpeRatio": 0.7,
+        "sortinoRatio": 0.96
       },
       "series": [
         [
@@ -17397,12 +17398,13 @@
         "totalReturnPct": 137.52,
         "cagrPct": 12.71,
         "return1Y": 19.63,
-        "return3Y": 20.13,
-        "return5Y": 11.36,
+        "return3Y": 73.35,
+        "return5Y": 71.23,
+        "return10Y": null,
         "volatilityPct": 15.93,
         "maxDrawdownPct": -33.43,
-        "sharpeRatio": 0.64,
-        "sortinoRatio": 0.87
+        "sharpeRatio": 0.67,
+        "sortinoRatio": 0.91
       },
       "series": [
         [
@@ -24782,12 +24784,13 @@
         "totalReturnPct": 114.19,
         "cagrPct": 9.39,
         "return1Y": 19.14,
-        "return3Y": 17.61,
-        "return5Y": 7.0,
+        "return3Y": 62.68,
+        "return5Y": 40.26,
+        "return10Y": null,
         "volatilityPct": 18.08,
         "maxDrawdownPct": -40.23,
-        "sharpeRatio": 0.38,
-        "sortinoRatio": 0.52
+        "sharpeRatio": 0.41,
+        "sortinoRatio": 0.56
       },
       "series": [
         [
@@ -33431,12 +33434,13 @@
         "totalReturnPct": 146.21,
         "cagrPct": 7.56,
         "return1Y": 21.61,
-        "return3Y": 20.08,
-        "return5Y": 7.8,
+        "return3Y": 73.14,
+        "return5Y": 45.59,
+        "return10Y": 117.95,
         "volatilityPct": 18.97,
         "maxDrawdownPct": -35.06,
-        "sharpeRatio": 0.27,
-        "sortinoRatio": 0.37
+        "sharpeRatio": 0.29,
+        "sortinoRatio": 0.41
       },
       "series": [
         [
@@ -46016,12 +46020,13 @@
         "totalReturnPct": 9508.1,
         "cagrPct": 8.37,
         "return1Y": 20.28,
-        "return3Y": 21.1,
-        "return5Y": 13.37,
+        "return3Y": 77.58,
+        "return5Y": 87.27,
+        "return10Y": 302.5,
         "volatilityPct": 17.09,
         "maxDrawdownPct": -56.78,
-        "sharpeRatio": 0.34,
-        "sortinoRatio": 0.47
+        "sharpeRatio": 0.37,
+        "sortinoRatio": 0.52
       },
       "series": [
         [
@@ -103501,12 +103506,13 @@
         "totalReturnPct": 888.75,
         "cagrPct": 4.12,
         "return1Y": 2.07,
-        "return3Y": 2.82,
-        "return5Y": 2.16,
+        "return3Y": 8.7,
+        "return5Y": 11.26,
+        "return10Y": 8.37,
         "volatilityPct": 0.27,
         "maxDrawdownPct": -3.71,
-        "sharpeRatio": 5.92,
-        "sortinoRatio": 10.54
+        "sharpeRatio": 7.75,
+        "sortinoRatio": 14.77
       },
       "series": [
         [
@@ -161010,12 +161016,13 @@
         "totalReturnPct": 390.33,
         "cagrPct": 9.84,
         "return1Y": -1.48,
-        "return3Y": 24.97,
-        "return5Y": 19.12,
+        "return3Y": 95.18,
+        "return5Y": 139.82,
+        "return10Y": 217.02,
         "volatilityPct": 15.39,
         "maxDrawdownPct": -36.79,
-        "sharpeRatio": 0.48,
-        "sortinoRatio": 0.68
+        "sharpeRatio": 0.51,
+        "sortinoRatio": 0.73
       },
       "series": [
         [
@@ -178231,12 +178238,13 @@
         "totalReturnPct": 439.48,
         "cagrPct": 11.88,
         "return1Y": 18.26,
-        "return3Y": 11.75,
-        "return5Y": 7.86,
+        "return3Y": 39.54,
+        "return5Y": 45.97,
+        "return10Y": 138.43,
         "volatilityPct": 20.5,
         "maxDrawdownPct": -35.88,
-        "sharpeRatio": 0.46,
-        "sortinoRatio": 0.71
+        "sharpeRatio": 0.48,
+        "sortinoRatio": 0.75
       },
       "series": [
         [
@@ -193504,12 +193512,13 @@
         "totalReturnPct": 20745.99,
         "cagrPct": 55.51,
         "return1Y": -21.87,
-        "return3Y": 38.01,
-        "return5Y": 5.55,
+        "return3Y": 162.86,
+        "return5Y": 31.02,
+        "return10Y": 12752.59,
         "volatilityPct": 54.74,
         "maxDrawdownPct": -82.75,
-        "sharpeRatio": 0.97,
-        "sortinoRatio": 1.42
+        "sharpeRatio": 0.98,
+        "sortinoRatio": 1.44
       },
       "series": [
         [
@@ -211209,12 +211218,13 @@
         "totalReturnPct": 58.38,
         "cagrPct": 10.47,
         "return1Y": 14.82,
-        "return3Y": 15.82,
+        "return3Y": 55.36,
         "return5Y": null,
+        "return10Y": null,
         "volatilityPct": 9.52,
         "maxDrawdownPct": -15.16,
-        "sharpeRatio": 0.84,
-        "sortinoRatio": 1.17
+        "sharpeRatio": 0.89,
+        "sortinoRatio": 1.25
       },
       "series": [
         [
@@ -215750,12 +215760,13 @@
         "totalReturnPct": 11.56,
         "cagrPct": 3.29,
         "return1Y": -1.97,
-        "return3Y": 3.6,
+        "return3Y": 11.2,
         "return5Y": null,
+        "return10Y": null,
         "volatilityPct": 2.65,
         "maxDrawdownPct": -3.72,
-        "sharpeRatio": 0.3,
-        "sortinoRatio": 0.42
+        "sharpeRatio": 0.48,
+        "sortinoRatio": 0.7
       },
       "series": [
         [

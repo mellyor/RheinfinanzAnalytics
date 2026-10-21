@@ -426,15 +426,9 @@ function updateSelectionCounter() {
 function updateModeButtonLabels() {
     const btnModePrice = document.getElementById('btnModePrice');
     if (!btnModePrice) return;
-    const isSingle = activeBacktestAssets.size === 1;
     const curSymbol = currentCurrency === 'USD' ? '$' : '€';
-    if (isSingle) {
-        btnModePrice.textContent = `Kurs in ${curSymbol}`;
-        btnModePrice.title = `Nominaler Kurswert in ${curSymbol}`;
-    } else {
-        btnModePrice.textContent = `Wertzuwachs in ${curSymbol} (Start 0 ${curSymbol})`;
-        btnModePrice.title = `Wertentwicklung bezogen auf 1.000 ${curSymbol} Startinvestition (Startet bei 0 ${curSymbol})`;
-    }
+    btnModePrice.textContent = `Wertzuwachs in ${curSymbol} (Start 0 ${curSymbol})`;
+    btnModePrice.title = `Wertentwicklung bezogen auf 1.000 ${curSymbol} Startinvestition (Startet bei 0 ${curSymbol})`;
 }
 
 function renderInstrumentDetails(item) {
@@ -511,6 +505,7 @@ function initHistoricalComparisonModule() {
     initCurrencyPills();
     initQuickActionButtons();
     initMatrixCollapsible();
+    initRiskToggle();
     initTableSorting();
     renderHistoricalTable();
     initHistoricalChart();
@@ -693,6 +688,31 @@ function initCurrencyPills() {
     });
 }
 
+let showRiskMetrics = false;
+
+function initRiskToggle() {
+    const btn = document.getElementById('btnToggleRiskCols');
+    const text = document.getElementById('riskToggleText');
+    const badge = document.getElementById('matrixColCountBadge');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        showRiskMetrics = !showRiskMetrics;
+        btn.classList.toggle('active', showRiskMetrics);
+        if (text) {
+            text.textContent = showRiskMetrics ? 'Sharpe & Sortino ausblenden' : 'Sharpe & Sortino Ratio einblenden';
+        }
+        if (badge) {
+            badge.textContent = showRiskMetrics ? '12 Spalten • Sortierbar' : '10 Spalten • Sortierbar';
+        }
+
+        const riskCols = document.querySelectorAll('.risk-col');
+        riskCols.forEach(col => {
+            col.style.display = showRiskMetrics ? 'table-cell' : 'none';
+        });
+    });
+}
+
 function initTableSorting() {
     const headers = document.querySelectorAll('#historicalComparisonTable th.sortable-th');
     headers.forEach(th => {
@@ -747,20 +767,22 @@ function renderHistoricalTable() {
     }
 
     tbody.innerHTML = '';
+    const riskStyle = showRiskMetrics ? 'display: table-cell;' : 'display: none;';
+
     items.forEach(item => {
         const m = item.metrics || {};
-        const isDayPos = (m.dayChangePct || 0) >= 0;
-        const dayStr = `${isDayPos ? '+' : ''}${(m.dayChangePct || 0).toFixed(2).replace('.', ',')} %`;
-        const dayClass = isDayPos ? 'metric-positive' : 'metric-negative';
 
-        const ret1YStr = m.return1Y !== null && m.return1Y !== undefined ? `${m.return1Y >= 0 ? '+' : ''}${m.return1Y.toFixed(2).replace('.', ',')} %` : '-';
-        const ret3YStr = m.return3Y !== null && m.return3Y !== undefined ? `${m.return3Y >= 0 ? '+' : ''}${m.return3Y.toFixed(2).replace('.', ',')} %` : '-';
-        const cagrStr = m.cagrPct !== null && m.cagrPct !== undefined ? `+${m.cagrPct.toFixed(2).replace('.', ',')} %` : '-';
-        const totRetStr = m.totalReturnPct !== null && m.totalReturnPct !== undefined ? `+${m.totalReturnPct.toFixed(1).replace('.', ',')} %` : '-';
-        const volStr = m.volatilityPct !== null && m.volatilityPct !== undefined ? `${m.volatilityPct.toFixed(2).replace('.', ',')} %` : '-';
-        const ddStr = m.maxDrawdownPct !== null && m.maxDrawdownPct !== undefined ? `${m.maxDrawdownPct.toFixed(2).replace('.', ',')} %` : '-';
-        const sharpeStr = m.sharpeRatio !== null && m.sharpeRatio !== undefined ? m.sharpeRatio.toFixed(2) : '-';
-        const sortinoStr = m.sortinoRatio !== null && m.sortinoRatio !== undefined ? m.sortinoRatio.toFixed(2) : '-';
+        const ret1YStr = (m.return1Y !== null && m.return1Y !== undefined) ? `${m.return1Y >= 0 ? '+' : ''}${m.return1Y.toFixed(2).replace('.', ',')} %` : '-';
+        const ret3YStr = (m.return3Y !== null && m.return3Y !== undefined) ? `${m.return3Y >= 0 ? '+' : ''}${m.return3Y.toFixed(2).replace('.', ',')} %` : '-';
+        const ret5YStr = (m.return5Y !== null && m.return5Y !== undefined) ? `${m.return5Y >= 0 ? '+' : ''}${m.return5Y.toFixed(2).replace('.', ',')} %` : '-';
+        const ret10YStr = (m.return10Y !== null && m.return10Y !== undefined) ? `${m.return10Y >= 0 ? '+' : ''}${m.return10Y.toFixed(2).replace('.', ',')} %` : '-';
+
+        const totRetStr = (m.totalReturnPct !== null && m.totalReturnPct !== undefined) ? `+${m.totalReturnPct.toFixed(1).replace('.', ',')} %` : '-';
+        const cagrStr = (m.cagrPct !== null && m.cagrPct !== undefined) ? `+${m.cagrPct.toFixed(2).replace('.', ',')} %` : '-';
+        const volStr = (m.volatilityPct !== null && m.volatilityPct !== undefined) ? `${m.volatilityPct.toFixed(2).replace('.', ',')} %` : '-';
+        const ddStr = (m.maxDrawdownPct !== null && m.maxDrawdownPct !== undefined) ? `${m.maxDrawdownPct.toFixed(2).replace('.', ',')} %` : '-';
+        const sharpeStr = (m.sharpeRatio !== null && m.sharpeRatio !== undefined) ? m.sharpeRatio.toFixed(2) : '-';
+        const sortinoStr = (m.sortinoRatio !== null && m.sortinoRatio !== undefined) ? m.sortinoRatio.toFixed(2) : '-';
 
         const color = ASSET_COLORS[item.id] || '#112D4E';
 
@@ -775,15 +797,16 @@ function renderHistoricalTable() {
                 </div>
             </td>
             <td><span style="font-size: 0.68rem; background: #F1F5F9; padding: 2px 5px; border-radius: 3px; white-space: nowrap;">${item.category}</span></td>
-            <td class="num-col ${dayClass}">${dayStr}</td>
-            <td class="num-col ${m.return1Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret1YStr}</td>
-            <td class="num-col ${m.return3Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret3YStr}</td>
+            <td class="num-col ${m.return1Y !== null && m.return1Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret1YStr}</td>
+            <td class="num-col ${m.return3Y !== null && m.return3Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret3YStr}</td>
+            <td class="num-col ${m.return5Y !== null && m.return5Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret5YStr}</td>
+            <td class="num-col ${m.return10Y !== null && m.return10Y >= 0 ? 'metric-positive' : 'metric-negative'}">${ret10YStr}</td>
             <td class="num-col metric-positive" style="font-weight: 700;">${totRetStr}</td>
             <td class="num-col" style="font-weight: 700; color: var(--navy-primary);">${cagrStr}</td>
             <td class="num-col">${volStr}</td>
             <td class="num-col metric-negative">${ddStr}</td>
-            <td class="num-col" style="font-weight: 600;">${sharpeStr}</td>
-            <td class="num-col" style="font-weight: 700; color: var(--gold-dark);">${sortinoStr}</td>
+            <td class="num-col risk-col" style="${riskStyle} font-weight: 600;">${sharpeStr}</td>
+            <td class="num-col risk-col" style="${riskStyle} font-weight: 700; color: var(--gold-dark);">${sortinoStr}</td>
         `;
 
         tr.addEventListener('click', () => {
@@ -844,25 +867,14 @@ function initHistoricalChart() {
                                 return ` ${context.dataset.label}: ${val.toFixed(2)} % Drawdown`;
                             }
 
-                            const isSingle = (historicalChartInstance && historicalChartInstance.data.datasets.length === 1);
                             const cur = (currentCurrency === 'USD' || context.dataset.currency === 'USD') ? '$' : '€';
-
-                            if (isSingle) {
-                                if (val >= 1000) {
-                                    return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
-                                } else {
-                                    return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ${cur}`;
-                                }
-                            } else {
-                                const sign = val >= 0 ? '+' : '';
-                                const pct = (val / 10.0).toFixed(2);
-                                const pctSign = val >= 0 ? '+' : '';
-                                return ` ${context.dataset.label}: ${sign}${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur} (${pctSign}${pct} %)`;
-                            }
+                            const sign = val >= 0 ? '+' : '';
+                            const pct = (val / 10.0).toFixed(2);
+                            const pctSign = val >= 0 ? '+' : '';
+                            return ` ${context.dataset.label}: ${sign}${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur} (${pctSign}${pct} %)`;
                         },
                         footer: function(tooltipItems) {
-                            const isSingle = (historicalChartInstance && historicalChartInstance.data.datasets.length === 1);
-                            if (!isSingle && currentChartMode === 'price') {
+                            if (currentChartMode === 'price') {
                                 const cur = currentCurrency === 'USD' ? '$' : '€';
                                 return `Basis: 1.000 ${cur} Startkapital (Start bei 0 ${cur})`;
                             }
@@ -900,14 +912,9 @@ function initHistoricalChart() {
                         font: { size: 11, weight: 'bold' },
                         callback: function(value) {
                             if (currentChartMode === 'drawdown') return `${value} %`;
-                            const isSingle = (historicalChartInstance && historicalChartInstance.data.datasets.length === 1);
                             const cur = currentCurrency === 'USD' ? '$' : '€';
-                            if (isSingle) {
-                                return value >= 1000 ? `${Math.round(value/1000).toLocaleString('de-DE')}k ${cur}` : `${value.toLocaleString('de-DE')} ${cur}`;
-                            } else {
-                                const sign = value > 0 ? '+' : '';
-                                return `${sign}${value.toLocaleString('de-DE')} ${cur}`;
-                            }
+                            const sign = value > 0 ? '+' : '';
+                            return `${sign}${value.toLocaleString('de-DE')} ${cur}`;
                         }
                     }
                 }
@@ -1010,10 +1017,8 @@ function updateHistoricalChart() {
             if (currentChartMode === 'drawdown') {
                 const dd = peak > 0 ? ((curVal - peak) / peak) * 100 : 0;
                 dataPoints.push(Math.round(dd * 100) / 100);
-            } else if (isSingleAsset) {
-                dataPoints.push(Math.round(curVal * 100) / 100);
             } else {
-                // Multiple assets: Net gain/loss in € or $ based on 1.000 starting capital (starts at 0 €)
+                // Performance / Wertzuwachs in € or $ based on 1.000 starting capital (starts at 0 €/$)
                 const perf = startVal > 0 ? ((curVal - startVal) / startVal) : 0;
                 const gain = perf * 1000.0;
                 dataPoints.push(Math.round(gain * 100) / 100);

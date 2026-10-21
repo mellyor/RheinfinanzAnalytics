@@ -280,10 +280,9 @@ def compute_metrics(series, rf_rate=0.025):
     total_return = (end_val / start_val) - 1.0
     cagr = (end_val / start_val) ** (1.0 / max(years, 0.1)) - 1.0 if years > 0.1 else total_return
     
-    # 1Y, 3Y, 5Y return
+    # 1Y, 3Y, 5Y, 10Y cumulative total returns (gesamt, nicht p.a.)
     def return_n_years_ago(n):
         target_d = d2 - datetime.timedelta(days=n * 365.25)
-        # find closest date on or before target_d
         closest = None
         for dt_str, val in series:
             dt = datetime.datetime.strptime(dt_str, '%Y-%m-%d')
@@ -293,13 +292,13 @@ def compute_metrics(series, rf_rate=0.025):
                 break
         if closest and closest > 0:
             tot = (end_val / closest) - 1.0
-            annualized = (end_val / closest) ** (1.0 / n) - 1.0
-            return round(annualized * 100, 2)
+            return round(tot * 100.0, 2)
         return None
 
     ret_1y = return_n_years_ago(1)
     ret_3y = return_n_years_ago(3)
     ret_5y = return_n_years_ago(5)
+    ret_10y = return_n_years_ago(10)
     
     # Daily returns for volatility and Sharpe ratio
     daily_returns = []
@@ -359,6 +358,7 @@ def compute_metrics(series, rf_rate=0.025):
         "return1Y": ret_1y,
         "return3Y": ret_3y,
         "return5Y": ret_5y,
+        "return10Y": ret_10y,
         "volatilityPct": round(annualized_vol * 100, 2),
         "maxDrawdownPct": round(max_dd * 100, 2),
         "sharpeRatio": round(sharpe, 2),
