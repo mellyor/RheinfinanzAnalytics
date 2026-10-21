@@ -50,6 +50,29 @@
             </div>
         </header>
 
+        <!-- Top-Level Navigation Tabs between Section 1 and Section 2 -->
+        <nav class="main-view-tabs" id="mainViewTabs" aria-label="Hauptnavigation">
+            <button type="button" class="main-view-tab active" data-target="historical-analytics" id="tabHistorical">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <div class="tab-text-wrap">
+                    <span class="tab-title">1. Rendite- &amp; Drawdown-Analyse</span>
+                    <span class="tab-desc">11 Leitindizes &amp; Strategiefonds im Vergleich</span>
+                </div>
+            </button>
+            <button type="button" class="main-view-tab" data-target="strategy-lab" id="tabStrategyLab">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                    <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                </svg>
+                <div class="tab-text-wrap">
+                    <span class="tab-title">2. Sparplan- &amp; Portfolio-Backtest</span>
+                    <span class="tab-desc">Hebel-Strategien (2x/3x mit 200-SMA) &amp; Core-Satellite</span>
+                </div>
+            </button>
+        </nav>
+
         <!-- ==================== SECTION 1: HISTORISCHE RENDITE- & DRAWDOWN-ANALYSE ==================== -->
         <section id="historical-analytics" style="margin-bottom: 50px;">
             <div class="section-headline">
@@ -118,12 +141,13 @@
                             </div>
                         </div>
 
-                        <!-- Rechtsseitig: Währungswahl € / $ -->
+                        <!-- Rechtsseitig: Währung & Einheit (€ / $ / %) -->
                         <div class="currency-switch-box" id="currencySwitchBox">
-                            <span class="control-label">Währung:</span>
+                            <span class="control-label">Einheit:</span>
                             <div class="currency-pills" id="currencyPills">
-                                <button type="button" class="currency-pill active" data-curr="EUR" title="Kurse in Euro (€) darstellen">€ Euro</button>
-                                <button type="button" class="currency-pill" data-curr="USD" title="Kurse in US-Dollar ($) mit historischem Tagesschluss-Wechselkurs darstellen">$ USD</button>
+                                <button type="button" class="currency-pill active" data-curr="EUR" title="Wertzuwachs in Euro (€)">€ Euro</button>
+                                <button type="button" class="currency-pill" data-curr="USD" title="Wertzuwachs in US-Dollar ($) mit historischem Tagesschluss-Wechselkurs">$ USD</button>
+                                <button type="button" class="currency-pill" data-curr="PCT" title="Prozentuale Gesamtrendite (Basis 0,0 %)">% Prozent</button>
                             </div>
                         </div>
                     </div>
@@ -144,7 +168,7 @@
                 </div>
 
                 <!-- Canvas Chart -->
-                <div class="backtest-chart-container">
+                <div class="backtest-chart-container" id="historicalChartContainer">
                     <canvas id="historicalComparisonChart"></canvas>
                 </div>
 
@@ -511,15 +535,59 @@
                     </div>
 
                     <!-- Visuals: Historical Equity Curve vs. Invested Capital -->
-                    <div class="chart-card-output">
-                        <div class="chart-card-header">
+                    <div class="chart-card-output" id="wealthTrajectoryCard">
+                        <div class="chart-card-header" style="flex-wrap: wrap; gap: 10px;">
                             <div>
                                 <h4 class="chart-card-title">Historische Depotentwicklung vs. Eingezahltes Kapital</h4>
                                 <span style="font-size: 0.74rem; color: var(--text-muted);">Reale Marktkurse inklusive aller reinvestierten Erträge (Total Return)</span>
                             </div>
-                            <span id="chartPeriodBadge" style="font-size: 0.75rem; font-weight: 700; color: var(--gold-dark); background: rgba(212, 175, 55, 0.12); padding: 3px 8px; border-radius: 4px;"></span>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span id="chartPeriodBadge" style="font-size: 0.75rem; font-weight: 700; color: var(--gold-dark); background: rgba(212, 175, 55, 0.12); padding: 3px 8px; border-radius: 4px;"></span>
+                                
+                                <!-- Chart Size Switcher -->
+                                <div class="chart-size-toggles" id="chartSizeToggles">
+                                    <button type="button" class="chart-size-btn active" data-size="normal" id="btnSizeNormal" title="Standard-Größe (360px)">Standard</button>
+                                    <button type="button" class="chart-size-btn" data-size="large" id="btnSizeLarge" title="Großansicht (580px)">Groß</button>
+                                    <button type="button" class="chart-size-btn" data-size="fullscreen" id="btnSizeFullscreen" title="Vollbildmodus aktivieren">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                            <polyline points="15 3 21 3 21 9"></polyline>
+                                            <polyline points="9 21 3 21 3 15"></polyline>
+                                            <line x1="21" y1="3" x2="14" y2="10"></line>
+                                            <line x1="3" y1="21" x2="10" y2="14"></line>
+                                        </svg>
+                                        <span>Vollbild</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chart-container-box" style="height: 350px;">
+
+                        <!-- Consolidated Event Toolbar (Counts, Hover-Highlight & Click-Toggle) -->
+                        <div class="chart-event-toolbar" id="chartEventToolbar">
+                            <div class="event-toolbar-left">
+                                <span class="event-toolbar-label">Ereignisse:</span>
+                                <div class="event-pill-group">
+                                    <button type="button" class="event-pill-btn active" id="btnToggleEventSwitches" data-event="switches" title="Klick: Umschichtungen ein-/ausblenden • Hover: Im Chart hervorheben">
+                                        <span class="event-symbol-badge badge-green">▲</span>
+                                        <span class="event-symbol-badge badge-red">▼</span>
+                                        <span>Umschichtungen (SMA 200)</span>
+                                        <span class="event-pill-count" id="countEventSwitches">0</span>
+                                    </button>
+                                    <button type="button" class="event-pill-btn active" id="btnToggleEventDeposits" data-event="deposits" title="Klick: Einmalzahlungen ein-/ausblenden • Hover: Im Chart hervorheben">
+                                        <span class="event-symbol-badge badge-gold">◆</span>
+                                        <span>Einmalzahlungen</span>
+                                        <span class="event-pill-count" id="countEventDeposits">0</span>
+                                    </button>
+                                    <button type="button" class="event-pill-btn active" id="btnToggleEventSavings" data-event="savings" title="Klick: Sparplankäufe ein-/ausblenden • Hover: Im Chart hervorheben">
+                                        <span class="event-symbol-badge badge-cyan">●</span>
+                                        <span>Sparplankäufe</span>
+                                        <span class="event-pill-count" id="countEventSavings">0</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <span class="event-toolbar-hint">Klick: Ein/Aus &bull; Hover: Im Chart hervorheben &bull; Zoom: Bereich mit linker Maustaste ziehen</span>
+                        </div>
+
+                        <div class="chart-container-box" id="wealthChartBox" style="height: 360px;">
                             <canvas id="wealthTrajectoryCanvas"></canvas>
                         </div>
                     </div>

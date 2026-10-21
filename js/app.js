@@ -79,16 +79,16 @@ const FALLBACK_CATALOG = [
     {
         id: 'sp500',
         name: 'S&P 500',
-        fullName: 'iShares Core S&P 500 UCITS ETF (EUR)',
-        ticker: 'SXR8.DE',
+        fullName: 'S&P 500 Index (^GSPC)',
+        ticker: '^GSPC',
         category: 'USA Leitmarkt',
-        tag: 'US-Leitindex (EUR)',
-        isin: 'IE00B5BMR087',
-        wkn: 'A0YEDG',
-        ter: '0,07 % p.a.',
-        currency: 'EUR',
-        description: 'Führender US-Leitindex der 500 wertvollsten Unternehmen in Euro inkl. automatischer Dividenden-Reinvestition (Total Return). Historie bis 1970 zurückgerechnet.',
-        metrics: { latestPrice: 738.96, dayChangePct: 0.15, cagrPct: 8.36, volatilityPct: 15.65, maxDrawdownPct: -54.20, sharpeRatio: 0.38, return1Y: 22.00, return3Y: 20.91, return5Y: 13.35 }
+        tag: 'US-Leitindex',
+        isin: 'US78378X1072',
+        wkn: 'A0AET0',
+        ter: '0,00 % p.a. (Index)',
+        currency: 'USD',
+        description: 'Offizieller US-Leitindex der 500 wertvollsten Unternehmen (^GSPC). Weltweite Referenz für die 200-Tage-Linie (SMA 200) und Hebel-Strategien. Historie lückenlos ab 1970.',
+        metrics: { latestPrice: 7712.57, dayChangePct: 0.28, cagrPct: 8.09, volatilityPct: 15.65, maxDrawdownPct: -56.78, sharpeRatio: 0.36, return1Y: 33.15, return3Y: 96.50, return5Y: 124.62, return10Y: 259.85 }
     },
     {
         id: 'euro_geldmarkt',
@@ -210,6 +210,7 @@ function getFxRate(dateStr) {
     return 1.1231;
 }
 let historicalChartInstance = null;
+let historyZoomController = null;
 
 // Table Sorting State
 let tableSortColumn = null;
@@ -217,6 +218,7 @@ let tableSortAsc = false;
 
 // Section 2: Historical Portfolio & Savings Plan Backtest State
 let trajectoryChartInstance = null;
+let wealthZoomController = null;
 let backtestPortfolioMode = 'preset'; // 'preset' or 'coresatellite'
 let coreAssetId = 'msci_world';
 let coreWeightPct = 80;
@@ -299,11 +301,62 @@ const BACKTEST_STRATEGIES = {
 
 // DOM Ready Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    initMainViewTabs();
     initIndexCards();
     initHistoricalComparisonModule();
     renderInstrumentDetails(getAssetById(focusedAssetId));
     initBacktestModule();
 });
+
+function initMainViewTabs() {
+    const tabs = document.querySelectorAll('.main-view-tab');
+    const secHistorical = document.getElementById('historical-analytics');
+    const secStrategy = document.getElementById('strategy-lab');
+
+    function switchView(targetId, updateHash = true) {
+        tabs.forEach(t => {
+            const isActive = t.getAttribute('data-target') === targetId;
+            t.classList.toggle('active', isActive);
+        });
+
+        if (targetId === 'historical-analytics') {
+            if (secHistorical) secHistorical.style.display = 'block';
+            if (secStrategy) secStrategy.style.display = 'none';
+            if (updateHash) history.replaceState(null, '', '#historical-analytics');
+            if (historicalChartInstance) historicalChartInstance.resize();
+        } else {
+            if (secHistorical) secHistorical.style.display = 'none';
+            if (secStrategy) secStrategy.style.display = 'block';
+            if (updateHash) history.replaceState(null, '', '#strategy-lab');
+            if (trajectoryChartInstance) trajectoryChartInstance.resize();
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-target');
+            switchView(target);
+        });
+    });
+
+    const headerLinks = document.querySelectorAll('.header-actions .nav-link-btn');
+    headerLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href').replace('#', '');
+            switchView(href);
+        });
+    });
+
+    // Check initial hash on load
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'strategy-lab') {
+        switchView('strategy-lab', false);
+    } else {
+        switchView('historical-analytics', false);
+    }
+}
 
 function getAssetById(id) {
     return ASSET_CATALOG.find(a => a.id === id) || ASSET_CATALOG[0];
@@ -404,17 +457,18 @@ function syncCardStates() {
             badge.textContent = isActive ? '✓ Im Chart' : '+ Dazuschalten';
         }
     });
+
 }
 
 function updateSelectionCounter() {
     const counter = document.getElementById('selectionCounter');
     const badge = document.getElementById('indicesCountBadge');
     const count = activeBacktestAssets.size;
-    const curSymbol = currentCurrency === 'USD' ? '$' : '€';
     if (counter) {
-        if (count === 1) {
-            counter.innerHTML = `${count} von 11 Indizes im Chart aktiv <span style="font-size: 0.76rem; font-weight: normal; color: var(--text-muted); margin-left: 6px;">(Nominalkurs in ${curSymbol})</span>`;
+        if (currentCurrency === 'PCT') {
+            counter.innerHTML = `${count} von 11 Indizes im Chart aktiv <span style="font-size: 0.76rem; font-weight: 600; color: var(--gold-dark); margin-left: 6px;">• Vergleichsbasis: Prozentuale Rendite (Startet bei 0,0 %)</span>`;
         } else {
+            const curSymbol = currentCurrency === 'USD' ? '$' : '€';
             counter.innerHTML = `${count} von 11 Indizes im Chart aktiv <span style="font-size: 0.76rem; font-weight: 600; color: var(--gold-dark); margin-left: 6px;">• Vergleichsbasis: 1.000 ${curSymbol} Startkapital (Startet bei 0 ${curSymbol})</span>`;
         }
     }
@@ -426,9 +480,14 @@ function updateSelectionCounter() {
 function updateModeButtonLabels() {
     const btnModePrice = document.getElementById('btnModePrice');
     if (!btnModePrice) return;
-    const curSymbol = currentCurrency === 'USD' ? '$' : '€';
-    btnModePrice.textContent = `Wertzuwachs in ${curSymbol} (Start 0 ${curSymbol})`;
-    btnModePrice.title = `Wertentwicklung bezogen auf 1.000 ${curSymbol} Startinvestition (Startet bei 0 ${curSymbol})`;
+    if (currentCurrency === 'PCT') {
+        btnModePrice.textContent = 'Rendite in % (Start 0 %)';
+        btnModePrice.title = 'Prozentuale Gesamtrendite (Startet bei 0,0 %)';
+    } else {
+        const curSymbol = currentCurrency === 'USD' ? '$' : '€';
+        btnModePrice.textContent = `Wertzuwachs in ${curSymbol} (Start 0 ${curSymbol})`;
+        btnModePrice.title = `Wertentwicklung bezogen auf 1.000 ${curSymbol} Startinvestition (Startet bei 0 ${curSymbol})`;
+    }
 }
 
 function renderInstrumentDetails(item) {
@@ -482,11 +541,11 @@ function renderInstrumentDetails(item) {
         </div>
         <div class="inst-metric-item">
             <span class="inst-metric-label">Sharpe Ratio</span>
-            <span class="inst-metric-val">${m.sharpeRatio !== undefined ? m.sharpeRatio : '-'}</span>
+            <span class="inst-metric-val">${(item.id !== 'euro_geldmarkt' && m.sharpeRatio !== undefined && m.sharpeRatio !== null) ? m.sharpeRatio : '—'}</span>
         </div>
         <div class="inst-metric-item">
             <span class="inst-metric-label">Sortino Ratio</span>
-            <span class="inst-metric-val" style="color: var(--gold-dark);">${m.sortinoRatio !== undefined ? m.sortinoRatio : '-'}</span>
+            <span class="inst-metric-val" style="color: var(--gold-dark);">${(item.id !== 'euro_geldmarkt' && m.sortinoRatio !== undefined && m.sortinoRatio !== null) ? m.sortinoRatio : '—'}</span>
         </div>
         <div class="inst-metric-item" style="grid-column: 1 / -1; margin-top: 4px; border-top: 1px dashed var(--border-subtle); padding-top: 8px;">
             <span class="inst-metric-label">Profil & Anlagestrategie</span>
@@ -660,6 +719,7 @@ function initModePills() {
             updateHistoricalChart();
         });
     });
+
 }
 
 function initCurrencyPills() {
@@ -686,6 +746,7 @@ function initCurrencyPills() {
             renderInstrumentDetails(getAssetById(focusedAssetId));
         });
     });
+
 }
 
 let showRiskMetrics = false;
@@ -711,6 +772,7 @@ function initRiskToggle() {
             col.style.display = showRiskMetrics ? 'table-cell' : 'none';
         });
     });
+
 }
 
 function initTableSorting() {
@@ -727,6 +789,7 @@ function initTableSorting() {
             renderHistoricalTable();
         });
     });
+
 }
 
 function renderHistoricalTable() {
@@ -781,8 +844,9 @@ function renderHistoricalTable() {
         const cagrStr = (m.cagrPct !== null && m.cagrPct !== undefined) ? `+${m.cagrPct.toFixed(2).replace('.', ',')} %` : '-';
         const volStr = (m.volatilityPct !== null && m.volatilityPct !== undefined) ? `${m.volatilityPct.toFixed(2).replace('.', ',')} %` : '-';
         const ddStr = (m.maxDrawdownPct !== null && m.maxDrawdownPct !== undefined) ? `${m.maxDrawdownPct.toFixed(2).replace('.', ',')} %` : '-';
-        const sharpeStr = (m.sharpeRatio !== null && m.sharpeRatio !== undefined) ? m.sharpeRatio.toFixed(2) : '-';
-        const sortinoStr = (m.sortinoRatio !== null && m.sortinoRatio !== undefined) ? m.sortinoRatio.toFixed(2) : '-';
+        const isGeldmarkt = item.id === 'euro_geldmarkt';
+        const sharpeStr = (!isGeldmarkt && m.sharpeRatio !== null && m.sharpeRatio !== undefined) ? m.sharpeRatio.toFixed(2) : '—';
+        const sortinoStr = (!isGeldmarkt && m.sortinoRatio !== null && m.sortinoRatio !== undefined) ? m.sortinoRatio.toFixed(2) : '—';
 
         const color = ASSET_COLORS[item.id] || '#112D4E';
 
@@ -815,6 +879,7 @@ function renderHistoricalTable() {
 
         tbody.appendChild(tr);
     });
+
 }
 
 function initHistoricalChart() {
@@ -830,6 +895,9 @@ function initHistoricalChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { top: 14, right: 14, bottom: 4, left: 4 }
+            },
             interaction: {
                 mode: 'index',
                 intersect: false
@@ -867,16 +935,23 @@ function initHistoricalChart() {
                                 return ` ${context.dataset.label}: ${val.toFixed(2)} % Drawdown`;
                             }
 
-                            const cur = (currentCurrency === 'USD' || context.dataset.currency === 'USD') ? '$' : '€';
-                            const sign = val >= 0 ? '+' : '';
-                            const pct = (val / 10.0).toFixed(2);
-                            const pctSign = val >= 0 ? '+' : '';
-                            return ` ${context.dataset.label}: ${sign}${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur} (${pctSign}${pct} %)`;
+                            if (currentCurrency === 'PCT') {
+                                const sign = val >= 0 ? '+' : '';
+                                return ` ${context.dataset.label}: ${sign}${val.toFixed(2).replace('.', ',')} %`;
+                            } else {
+                                const cur = (currentCurrency === 'USD' || context.dataset.currency === 'USD') ? '$' : '€';
+                                const sign = val >= 0 ? '+' : '';
+                                return ` ${context.dataset.label}: ${sign}${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
+                            }
                         },
                         footer: function(tooltipItems) {
                             if (currentChartMode === 'price') {
-                                const cur = currentCurrency === 'USD' ? '$' : '€';
-                                return `Basis: 1.000 ${cur} Startkapital (Start bei 0 ${cur})`;
+                                if (currentCurrency === 'PCT') {
+                                    return 'Basis: Prozentuale Gesamtrendite (Startet bei 0,0 %)';
+                                } else {
+                                    const cur = currentCurrency === 'USD' ? '$' : '€';
+                                    return `Basis: 1.000 ${cur} Startkapital (Startet bei 0 ${cur})`;
+                                }
                             }
                             return '';
                         }
@@ -912,15 +987,22 @@ function initHistoricalChart() {
                         font: { size: 11, weight: 'bold' },
                         callback: function(value) {
                             if (currentChartMode === 'drawdown') return `${value} %`;
-                            const cur = currentCurrency === 'USD' ? '$' : '€';
-                            const sign = value > 0 ? '+' : '';
-                            return `${sign}${value.toLocaleString('de-DE')} ${cur}`;
+                            if (currentCurrency === 'PCT') {
+                                const sign = value > 0 ? '+' : '';
+                                return `${sign}${value} %`;
+                            } else {
+                                const cur = currentCurrency === 'USD' ? '$' : '€';
+                                const sign = value > 0 ? '+' : '';
+                                return `${sign}${value.toLocaleString('de-DE')} ${cur}`;
+                            }
                         }
                     }
                 }
             }
         }
     });
+
+    historyZoomController = attachChartDragZoom(() => historicalChartInstance, 'historicalComparisonChart', 'historicalChartContainer');
 
     updateHistoricalChart();
 }
@@ -990,11 +1072,14 @@ function updateHistoricalChart() {
         series.forEach(pt => priceMap.set(pt[0], pt[1]));
 
         const firstDate = series[0][0];
-        const startRate = (currentCurrency === 'USD') ? getFxRate(firstDate) : 1.0;
+        const isUsdAsset = (asset.currency === 'USD');
+        const startRate = (currentCurrency === 'USD')
+            ? (isUsdAsset ? 1.0 : getFxRate(firstDate))
+            : (isUsdAsset ? (1.0 / getFxRate(firstDate)) : 1.0);
         const startVal = series[0][1] * startRate;
 
         let peak = -Infinity;
-        let lastKnownEur = null;
+        let lastKnownRaw = null;
 
         const dataPoints = [];
 
@@ -1005,18 +1090,23 @@ function updateHistoricalChart() {
             }
 
             if (priceMap.has(dt)) {
-                lastKnownEur = priceMap.get(dt);
-            } else if (lastKnownEur === null) {
-                lastKnownEur = series[0][1];
+                lastKnownRaw = priceMap.get(dt);
+            } else if (lastKnownRaw === null) {
+                lastKnownRaw = series[0][1];
             }
 
-            const rate = (currentCurrency === 'USD') ? getFxRate(dt) : 1.0;
-            const curVal = lastKnownEur * rate;
+            const rate = (currentCurrency === 'USD')
+                ? (isUsdAsset ? 1.0 : getFxRate(dt))
+                : (isUsdAsset ? (1.0 / getFxRate(dt)) : 1.0);
+            const curVal = lastKnownRaw * rate;
             if (curVal > peak) peak = curVal;
 
             if (currentChartMode === 'drawdown') {
                 const dd = peak > 0 ? ((curVal - peak) / peak) * 100 : 0;
                 dataPoints.push(Math.round(dd * 100) / 100);
+            } else if (currentCurrency === 'PCT') {
+                const perf = startVal > 0 ? ((curVal - startVal) / startVal) : 0;
+                dataPoints.push(Math.round(perf * 10000) / 100);
             } else {
                 // Performance / Wertzuwachs in € or $ based on 1.000 starting capital (starts at 0 €/$)
                 const perf = startVal > 0 ? ((curVal - startVal) / startVal) : 0;
@@ -1053,6 +1143,10 @@ function updateHistoricalChart() {
         });
     });
 
+    if (historyZoomController) {
+        historyZoomController.reset(true);
+    }
+
     historicalChartInstance.data.labels = sampledDates;
     historicalChartInstance.data.datasets = datasets;
     historicalChartInstance.update();
@@ -1065,12 +1159,435 @@ function updateHistoricalChart() {
    Section 2: Persönlicher historischer Sparplan- & Portfolio-Backtest
    ========================================================================== */
 
+let backtestEventsVisibility = {
+    switches: true,
+    deposits: true,
+    savings: true
+};
+let backtestActiveEventDetails = new Map();
+let backtestSwitchDataVariants = { normalBuy: null, hoverBuy: null, normalSell: null, hoverSell: null };
+
 function initBacktestModule() {
     initBacktestInputs();
     initCoreSatelliteControls();
+    initBacktestChartSizeControls();
+    initBacktestEventControls();
     initBacktestChart();
     updateBacktestAssetBadge();
     runHistoricalBacktest();
+}
+
+let currentHighlightedCategory = null;
+
+function highlightEventCategory(cat) {
+    if (!trajectoryChartInstance || !trajectoryChartInstance.data || !trajectoryChartInstance.data.datasets) return;
+
+    trajectoryChartInstance.data.datasets.forEach((ds, idx) => {
+        if (!ds.eventCategory) return;
+        const meta = trajectoryChartInstance.getDatasetMeta(idx);
+
+        let targetRadius = 0;
+        let targetBorderWidth = 1.5;
+
+        if (cat === null) {
+            // Restore normal visibility and default sizes based on user's active toggles
+            const isVisible = !!backtestEventsVisibility[ds.eventCategory];
+            ds.hidden = !isVisible;
+            if (meta) meta.hidden = !isVisible;
+
+            if (ds.eventCategory === 'switches') {
+                targetRadius = 9.0;
+                targetBorderWidth = 2.5;
+                // Restore tightly attached normal positions for switches
+                if (ds.id === 'event_switches_buy' && backtestSwitchDataVariants.normalBuy) {
+                    ds.data = backtestSwitchDataVariants.normalBuy;
+                }
+                if (ds.id === 'event_switches_sell' && backtestSwitchDataVariants.normalSell) {
+                    ds.data = backtestSwitchDataVariants.normalSell;
+                }
+            } else if (ds.eventCategory === 'deposits') {
+                targetRadius = 7.5;
+                targetBorderWidth = 2.0;
+            } else if (ds.eventCategory === 'savings') {
+                targetRadius = 3.5;
+                targetBorderWidth = 1.5;
+            }
+        } else if (ds.eventCategory === cat) {
+            // SHOW ONLY the hovered event category, prominently highlighted!
+            ds.hidden = false;
+            if (meta) meta.hidden = false;
+
+            if (ds.eventCategory === 'switches') {
+                targetRadius = 14.5;
+                targetBorderWidth = 3.5;
+                // Only on hover: expand overlapping switch pairs so they do not obscure each other!
+                if (ds.id === 'event_switches_buy' && backtestSwitchDataVariants.hoverBuy) {
+                    ds.data = backtestSwitchDataVariants.hoverBuy;
+                }
+                if (ds.id === 'event_switches_sell' && backtestSwitchDataVariants.hoverSell) {
+                    ds.data = backtestSwitchDataVariants.hoverSell;
+                }
+            } else if (ds.eventCategory === 'deposits') {
+                targetRadius = 13.0;
+                targetBorderWidth = 3.0;
+            } else if (ds.eventCategory === 'savings') {
+                targetRadius = 7.0;
+                targetBorderWidth = 2.0;
+            }
+        } else {
+            // HIDE ALL OTHER EVENT CATEGORIES COMPLETELY WHILE HOVERING!
+            ds.hidden = true;
+            if (meta) meta.hidden = true;
+            targetRadius = 0;
+            targetBorderWidth = 0;
+
+            if (ds.eventCategory === 'switches') {
+                if (ds.id === 'event_switches_buy' && backtestSwitchDataVariants.normalBuy) {
+                    ds.data = backtestSwitchDataVariants.normalBuy;
+                }
+                if (ds.id === 'event_switches_sell' && backtestSwitchDataVariants.normalSell) {
+                    ds.data = backtestSwitchDataVariants.normalSell;
+                }
+            }
+        }
+
+        ds.pointRadius = targetRadius;
+        ds.radius = targetRadius;
+        ds.pointBorderWidth = targetBorderWidth;
+        ds.borderWidth = targetBorderWidth;
+
+        if (meta && meta.data) {
+            meta.data.forEach(pt => {
+                if (pt && pt.options) {
+                    pt.options.radius = targetRadius;
+                    pt.options.borderWidth = targetBorderWidth;
+                }
+            });
+        }
+    });
+
+    trajectoryChartInstance.update('none');
+}
+
+/**
+ * Universal Drag-to-Zoom Engine for Financial Charts
+ * Allows users to click and drag across any date range (left-to-right or right-to-left)
+ * to zoom in horizontally with automatic Y-axis fitting.
+ * Includes a floating 'Zoom aufheben' reset button and double-click reset support.
+ */
+function attachChartDragZoom(getChart, canvasId, containerId) {
+    const canvas = document.getElementById(canvasId);
+    const container = document.getElementById(containerId);
+    if (!canvas || !container) return null;
+
+    let selectionBox = container.querySelector('.chart-drag-selection');
+    if (!selectionBox) {
+        selectionBox = document.createElement('div');
+        selectionBox.className = 'chart-drag-selection';
+        container.appendChild(selectionBox);
+    }
+
+    let btnReset = container.querySelector('.btn-reset-zoom');
+    if (!btnReset) {
+        btnReset = document.createElement('button');
+        btnReset.type = 'button';
+        btnReset.className = 'btn-reset-zoom';
+        btnReset.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
+            </svg>
+            <span>Zoom aufheben</span>
+        `;
+        btnReset.title = 'Zoom aufheben und vollständige Historie anzeigen (auch per Doppelklick)';
+        container.appendChild(btnReset);
+    }
+
+    let isDragging = false;
+    let dragStartX = 0;
+    let isZoomed = false;
+
+    function resetZoom(skipUpdate) {
+        const chart = getChart();
+        if (chart && chart.options && chart.options.scales) {
+            delete chart.options.scales.x.min;
+            delete chart.options.scales.x.max;
+            delete chart.options.scales.y.min;
+            delete chart.options.scales.y.max;
+            if (!skipUpdate) {
+                chart.update('none');
+            }
+        }
+        isZoomed = false;
+        btnReset.style.display = 'none';
+        selectionBox.style.display = 'none';
+    }
+
+    btnReset.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetZoom(false);
+    });
+
+    canvas.addEventListener('dblclick', () => {
+        if (isZoomed) {
+            resetZoom(false);
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Only primary left-click
+        const chart = getChart();
+        if (!chart || !chart.chartArea || !chart.scales.x) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Ensure mousedown starts inside chart plotting area
+        if (mouseX < chart.chartArea.left || mouseX > chart.chartArea.right ||
+            mouseY < chart.chartArea.top || mouseY > chart.chartArea.bottom) {
+            return;
+        }
+
+        isDragging = true;
+        dragStartX = mouseX;
+
+        selectionBox.style.top = chart.chartArea.top + 'px';
+        selectionBox.style.height = (chart.chartArea.bottom - chart.chartArea.top) + 'px';
+        selectionBox.style.left = mouseX + 'px';
+        selectionBox.style.width = '0px';
+        selectionBox.style.display = 'block';
+
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const chart = getChart();
+        if (!chart || !chart.chartArea) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const curX = Math.max(chart.chartArea.left, Math.min(chart.chartArea.right, e.clientX - rect.left));
+
+        const minX = Math.min(dragStartX, curX);
+        const width = Math.abs(curX - dragStartX);
+
+        selectionBox.style.left = minX + 'px';
+        selectionBox.style.width = width + 'px';
+    });
+
+    window.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        selectionBox.style.display = 'none';
+
+        const chart = getChart();
+        if (!chart || !chart.chartArea || !chart.scales.x) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const curX = Math.max(chart.chartArea.left, Math.min(chart.chartArea.right, e.clientX - rect.left));
+        const dragDist = Math.abs(curX - dragStartX);
+
+        // Require at least 20px drag distance to avoid accidental clicks
+        if (dragDist < 20) return;
+
+        const pStart = Math.min(dragStartX, curX);
+        const pEnd = Math.max(dragStartX, curX);
+
+        const vStart = chart.scales.x.getValueForPixel(pStart);
+        const vEnd = chart.scales.x.getValueForPixel(pEnd);
+
+        const totalLabels = chart.data && chart.data.labels ? chart.data.labels.length : 0;
+        if (totalLabels < 3) return;
+
+        let idxStart = Math.max(0, Math.min(Math.round(vStart), Math.round(vEnd)));
+        let idxEnd = Math.min(totalLabels - 1, Math.max(Math.round(vStart), Math.round(vEnd)));
+
+        if (idxEnd - idxStart < 2) {
+            if (idxEnd < totalLabels - 1) idxEnd = Math.min(totalLabels - 1, idxStart + 2);
+            else idxStart = Math.max(0, idxEnd - 2);
+        }
+
+        // Apply X-range zoom
+        chart.options.scales.x.min = idxStart;
+        chart.options.scales.x.max = idxEnd;
+
+        // Auto-fit Y scale to visible range with 8% padding
+        let yMin = Infinity;
+        let yMax = -Infinity;
+        if (chart.data && chart.data.datasets) {
+            chart.data.datasets.forEach(ds => {
+                if (ds.hidden) return;
+                if (!ds.data || !Array.isArray(ds.data)) return;
+                for (let i = idxStart; i <= idxEnd; i++) {
+                    const val = ds.data[i];
+                    if (val !== null && val !== undefined && !isNaN(val)) {
+                        if (val < yMin) yMin = val;
+                        if (val > yMax) yMax = val;
+                    }
+                }
+            });
+        }
+
+        if (isFinite(yMin) && isFinite(yMax) && yMin < yMax) {
+            const range = yMax - yMin;
+            const pad = range > 0 ? range * 0.08 : 10;
+            if (canvas.id === 'wealthTrajectoryCanvas') {
+                chart.options.scales.y.min = Math.max(0, Math.floor(yMin - pad));
+                chart.options.scales.y.max = Math.ceil(yMax + pad);
+            } else {
+                if (typeof currentChartMode !== 'undefined' && currentChartMode === 'drawdown') {
+                    chart.options.scales.y.min = Math.floor(yMin - pad);
+                    chart.options.scales.y.max = 0;
+                } else {
+                    chart.options.scales.y.min = Math.floor(yMin - pad);
+                    chart.options.scales.y.max = Math.ceil(yMax + pad);
+                }
+            }
+        }
+
+        chart.update('none');
+        isZoomed = true;
+        btnReset.style.display = 'inline-flex';
+    });
+
+    return {
+        reset: resetZoom,
+        isZoomed: () => isZoomed
+    };
+}
+
+function initBacktestChartSizeControls() {
+    const card = document.getElementById('wealthTrajectoryCard');
+    const btnNormal = document.getElementById('btnSizeNormal');
+    const btnLarge = document.getElementById('btnSizeLarge');
+    const btnFullscreen = document.getElementById('btnSizeFullscreen');
+
+    if (!card) return;
+
+    let previousNonFullscreenSize = 'normal';
+
+    function setSize(size) {
+        [btnNormal, btnLarge, btnFullscreen].forEach(b => {
+            if (b) b.classList.remove('active');
+        });
+
+        const canvas = document.getElementById('wealthTrajectoryCanvas');
+
+        if (size === 'normal') {
+            card.classList.remove('is-large', 'fullscreen-active');
+            document.body.style.overflow = '';
+            previousNonFullscreenSize = 'normal';
+            if (btnNormal) btnNormal.classList.add('active');
+            if (btnFullscreen) {
+                btnFullscreen.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                    <span>Vollbild</span>
+                `;
+            }
+            if (canvas) {
+                canvas.style.width = '100%';
+                canvas.style.maxWidth = '100%';
+                canvas.removeAttribute('width');
+            }
+        } else if (size === 'large') {
+            card.classList.add('is-large');
+            card.classList.remove('fullscreen-active');
+            document.body.style.overflow = '';
+            previousNonFullscreenSize = 'large';
+            if (btnLarge) btnLarge.classList.add('active');
+            if (btnFullscreen) {
+                btnFullscreen.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                    <span>Vollbild</span>
+                `;
+            }
+            if (canvas) {
+                canvas.style.width = '100%';
+                canvas.style.maxWidth = '100%';
+                canvas.removeAttribute('width');
+            }
+        } else if (size === 'fullscreen') {
+            card.classList.add('fullscreen-active');
+            card.classList.remove('is-large');
+            document.body.style.overflow = 'hidden';
+            if (btnFullscreen) {
+                btnFullscreen.classList.add('active');
+                btnFullscreen.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Schließen</span>
+                `;
+            }
+        }
+
+        setTimeout(() => {
+            if (trajectoryChartInstance) trajectoryChartInstance.resize();
+        }, 50);
+    }
+
+    if (btnNormal) btnNormal.addEventListener('click', () => setSize('normal'));
+    if (btnLarge) btnLarge.addEventListener('click', () => setSize('large'));
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            if (card.classList.contains('fullscreen-active')) {
+                setSize(previousNonFullscreenSize || 'normal');
+            } else {
+                setSize('fullscreen');
+            }
+        });
+    }
+
+    // Escape exits fullscreen
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && card.classList.contains('fullscreen-active')) {
+            setSize(previousNonFullscreenSize || 'normal');
+        }
+    });
+
+}
+
+function initBacktestEventControls() {
+    const btnSwitches = document.getElementById('btnToggleEventSwitches');
+    const btnDeposits = document.getElementById('btnToggleEventDeposits');
+    const btnSavings = document.getElementById('btnToggleEventSavings');
+
+    function toggleCategory(cat, btn) {
+        backtestEventsVisibility[cat] = !backtestEventsVisibility[cat];
+        if (btn) btn.classList.toggle('active', backtestEventsVisibility[cat]);
+
+        if (backtestEventsVisibility[cat]) {
+            highlightEventCategory(cat);
+        } else {
+            highlightEventCategory(null);
+        }
+    }
+
+    function setupBtn(btn, cat) {
+        if (!btn) return;
+        btn.addEventListener('click', () => toggleCategory(cat, btn));
+        btn.addEventListener('mouseenter', () => {
+            highlightEventCategory(cat);
+        });
+        btn.addEventListener('mouseleave', () => {
+            highlightEventCategory(null);
+        });
+    }
+
+    setupBtn(btnSwitches, 'switches');
+    setupBtn(btnDeposits, 'deposits');
+    setupBtn(btnSavings, 'savings');
 }
 
 function initBacktestInputs() {
@@ -1491,6 +2008,9 @@ function initBacktestChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { top: 14, right: 14, bottom: 4, left: 4 }
+            },
             interaction: {
                 mode: 'index',
                 intersect: false
@@ -1502,7 +2022,13 @@ function initBacktestChart() {
                         boxWidth: 12,
                         usePointStyle: true,
                         font: { family: 'Cinzel, Georgia, serif', size: 11, weight: 'bold' },
-                        color: '#0A192F'
+                        color: '#0A192F',
+                        filter: function(item, chart) {
+                            if (chart && chart.datasets && chart.datasets[item.datasetIndex]) {
+                                return !chart.datasets[item.datasetIndex].hideFromLegend;
+                            }
+                            return true;
+                        }
                     }
                 },
                 tooltip: {
@@ -1516,8 +2042,42 @@ function initBacktestChart() {
                         return b.parsed.y - a.parsed.y;
                     },
                     callbacks: {
+                        title: function(items) {
+                            if (!items || items.length === 0) return '';
+                            return formatDateDE(items[0].label);
+                        },
                         label: function(context) {
-                            return ` ${context.dataset.label}: ${Math.round(context.parsed.y).toLocaleString('de-DE')} €`;
+                            const val = context.parsed ? context.parsed.y : null;
+                            if (val === null || isNaN(val)) return null;
+
+                            const ds = context.dataset;
+                            const dt = context.label;
+
+                            if (ds.id === 'event_switches_buy') {
+                                const swInfo = backtestActiveEventDetails.get(dt + '_switch');
+                                const smaText = swInfo && swInfo.smaDiffPct !== undefined ? ` (${swInfo.smaDiffPct >= 0 ? '+' : ''}${swInfo.smaDiffPct.toFixed(1).replace('.', ',')} % vs. 200-SMA)` : '';
+                                const realVal = swInfo ? swInfo.val : Math.round(val);
+                                return ` 🟢 Umschichtung in Hebel-ETF${smaText} • Depotwert: ${Math.round(realVal).toLocaleString('de-DE')} €`;
+                            }
+                            if (ds.id === 'event_switches_sell') {
+                                const swInfo = backtestActiveEventDetails.get(dt + '_switch');
+                                const smaText = swInfo && swInfo.smaDiffPct !== undefined ? ` (${swInfo.smaDiffPct >= 0 ? '+' : ''}${swInfo.smaDiffPct.toFixed(1).replace('.', ',')} % vs. 200-SMA)` : '';
+                                const realVal = swInfo ? swInfo.val : Math.round(val);
+                                return ` 🔴 Absicherung in Geldmarkt${smaText} • Depotwert: ${Math.round(realVal).toLocaleString('de-DE')} €`;
+                            }
+                            if (ds.id === 'event_deposits') {
+                                const depInfo = backtestActiveEventDetails.get(dt + '_deposit');
+                                const title = depInfo && depInfo.type === 'initial' ? 'Start-Einmalanlage' : 'Sonderzahlung';
+                                const amtStr = depInfo ? ` (+${Math.round(depInfo.amount).toLocaleString('de-DE')} €)` : '';
+                                return ` 💎 ${title}${amtStr} • Neuer Depotwert: ${Math.round(val).toLocaleString('de-DE')} €`;
+                            }
+                            if (ds.id === 'event_savings') {
+                                const savInfo = backtestActiveEventDetails.get(dt + '_saving');
+                                const amtStr = savInfo ? ` (+${Math.round(savInfo.amount).toLocaleString('de-DE')} €)` : '';
+                                return ` 🔵 Sparplankauf${amtStr} • Neuer Depotwert: ${Math.round(val).toLocaleString('de-DE')} €`;
+                            }
+
+                            return ` ${context.dataset.label}: ${Math.round(val).toLocaleString('de-DE')} €`;
                         }
                     }
                 }
@@ -1540,6 +2100,8 @@ function initBacktestChart() {
             }
         }
     });
+
+    wealthZoomController = attachChartDragZoom(() => trajectoryChartInstance, 'wealthTrajectoryCanvas', 'wealthChartBox');
 }
 
 /**
@@ -1608,10 +2170,23 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
     const cashFlowsB = [];
     const cashFlowsC = [];
 
+    const switchEvents = new Map();
+    const depositEvents = new Map();
+    const savingEvents = new Map();
+    backtestActiveEventDetails.clear();
+
     if (initialCapital > 0) {
         cashFlowsA.push({ date: tradingDates[0], amount: -initialCapital });
         cashFlowsB.push({ date: tradingDates[0], amount: -initialCapital });
         cashFlowsC.push({ date: tradingDates[0], amount: -initialCapital });
+        depositEvents.set(tradingDates[0], { type: 'initial', amount: initialCapital });
+        backtestActiveEventDetails.set(tradingDates[0] + '_deposit', {
+            category: 'deposits',
+            type: 'initial',
+            amount: initialCapital,
+            val: Math.round(initialCapital),
+            netInvested: Math.round(initialCapital)
+        });
     }
 
     const timelineLabels = [tradingDates[0]];
@@ -1624,6 +2199,8 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
     let maxDdA = 0;
     let peakB = valB;
     let maxDdB = 0;
+    let peakC = valC;
+    let maxDdC = 0;
 
     let lastKnownMonth = tradingDates[0].substring(0, 7);
     let lastKnownCashPrice = cashPriceMap.get(tradingDates[0]) || 100;
@@ -1632,55 +2209,7 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
         const dt = tradingDates[t];
         const prevDt = tradingDates[t - 1];
 
-        // 1. Monthly Savings (1st trading day of new month)
-        const currentMonth = dt.substring(0, 7);
-        if (lastKnownMonth && currentMonth !== lastKnownMonth && monthlyRate > 0) {
-            valA += monthlyRate;
-            valB += monthlyRate;
-            valC += monthlyRate;
-            cumulativeDeposits += monthlyRate;
-            totalMonthlySavings += monthlyRate;
-            monthlySavingsCount++;
-            cashFlowsA.push({ date: dt, amount: -monthlyRate });
-            cashFlowsB.push({ date: dt, amount: -monthlyRate });
-            cashFlowsC.push({ date: dt, amount: -monthlyRate });
-        }
-        lastKnownMonth = currentMonth;
-
-        // 2. Extra Deposits
-        extraDeposits.forEach(dep => {
-            if (dep.date === dt) {
-                valA += dep.amount;
-                valB += dep.amount;
-                valC += dep.amount;
-                cumulativeDeposits += dep.amount;
-                totalExtraDeposits += dep.amount;
-                extraDepositsCount++;
-                cashFlowsA.push({ date: dt, amount: -dep.amount });
-                cashFlowsB.push({ date: dt, amount: -dep.amount });
-                cashFlowsC.push({ date: dt, amount: -dep.amount });
-            }
-        });
-
-        // 3. Withdrawals
-        withdrawals.forEach(w => {
-            if (w.date === dt) {
-                const actA = Math.min(w.amount, valA);
-                const actB = Math.min(w.amount, valB);
-                const actC = Math.min(w.amount, valC);
-                valA = Math.max(0, valA - actA);
-                valB = Math.max(0, valB - actB);
-                valC = Math.max(0, valC - actC);
-                cumulativeWithdrawals += actA;
-                totalWithdrawals += actA;
-                withdrawalsCount++;
-                cashFlowsA.push({ date: dt, amount: +actA });
-                cashFlowsB.push({ date: dt, amount: +actB });
-                cashFlowsC.push({ date: dt, amount: +actC });
-            }
-        });
-
-        // 4. Signal check from yesterday's close (prevDt)
+        // 1. Signal check from yesterday's close (prevDt)
         const prevClose = underlyingPriceMap.get(prevDt);
         const prevSma = smaMap.get(prevDt) || prevClose;
         const targetState = leverageUseSma ? (prevClose >= prevSma ? 'LEVERAGE' : 'MONEY_MARKET') : 'LEVERAGE';
@@ -1692,9 +2221,22 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
             }
             switchesCount++;
             currentState = targetState;
+            if (leverageUseSma) {
+                const diffPct = prevSma > 0 ? ((prevClose - prevSma) / prevSma) * 100 : 0;
+                switchEvents.set(dt, { targetState: currentState, date: dt, prevClose: prevClose, prevSma: prevSma, smaDiffPct: diffPct });
+                backtestActiveEventDetails.set(dt + '_switch', {
+                    category: 'switches',
+                    targetState: currentState,
+                    date: dt,
+                    val: Math.round(valA),
+                    prevClose: prevClose,
+                    prevSma: prevSma,
+                    smaDiffPct: diffPct
+                });
+            }
         }
 
-        // 5. Daily returns for day t
+        // 2. Daily returns for day t applied to existing portfolio
         const currClose = underlyingPriceMap.get(dt);
         const r_spx = (currClose - prevClose) / prevClose;
         const r_lev = Math.max(-0.999, leverageFactor * r_spx - (leverageTer / 252.0));
@@ -1719,6 +2261,72 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
         // Apply return to 1x Buy & Hold C (TER 0.07%)
         valC *= (1.0 + r_spx - (0.0007 / 252.0));
 
+        // 3. Monthly Savings execution at today's close (matching unit purchasing at close)
+        const currentMonth = dt.substring(0, 7);
+        if (lastKnownMonth && currentMonth !== lastKnownMonth && monthlyRate > 0) {
+            valA += monthlyRate;
+            valB += monthlyRate;
+            valC += monthlyRate;
+            cumulativeDeposits += monthlyRate;
+            totalMonthlySavings += monthlyRate;
+            monthlySavingsCount++;
+            cashFlowsA.push({ date: dt, amount: -monthlyRate });
+            cashFlowsB.push({ date: dt, amount: -monthlyRate });
+            cashFlowsC.push({ date: dt, amount: -monthlyRate });
+            savingEvents.set(dt, { type: 'monthly', amount: monthlyRate });
+            backtestActiveEventDetails.set(dt + '_saving', {
+                category: 'savings',
+                type: 'monthly',
+                amount: monthlyRate,
+                val: Math.round(valA),
+                netInvested: Math.round(cumulativeDeposits - cumulativeWithdrawals)
+            });
+        }
+        lastKnownMonth = currentMonth;
+
+        // 4. Extra Deposits execution at today's close
+        extraDeposits.forEach(dep => {
+            if (dep.date === dt) {
+                valA += dep.amount;
+                valB += dep.amount;
+                valC += dep.amount;
+                cumulativeDeposits += dep.amount;
+                totalExtraDeposits += dep.amount;
+                extraDepositsCount++;
+                cashFlowsA.push({ date: dt, amount: -dep.amount });
+                cashFlowsB.push({ date: dt, amount: -dep.amount });
+                cashFlowsC.push({ date: dt, amount: -dep.amount });
+                const existing = depositEvents.get(dt) ? depositEvents.get(dt).amount : 0;
+                const totalAmt = existing + dep.amount;
+                depositEvents.set(dt, { type: 'extra', amount: totalAmt });
+                backtestActiveEventDetails.set(dt + '_deposit', {
+                    category: 'deposits',
+                    type: 'extra',
+                    amount: totalAmt,
+                    val: Math.round(valA),
+                    netInvested: Math.round(cumulativeDeposits - cumulativeWithdrawals)
+                });
+            }
+        });
+
+        // 5. Withdrawals execution at today's close
+        withdrawals.forEach(w => {
+            if (w.date === dt) {
+                const actA = Math.min(w.amount, valA);
+                const actB = Math.min(w.amount, valB);
+                const actC = Math.min(w.amount, valC);
+                valA = Math.max(0, valA - actA);
+                valB = Math.max(0, valB - actB);
+                valC = Math.max(0, valC - actC);
+                cumulativeWithdrawals += actA;
+                totalWithdrawals += actA;
+                withdrawalsCount++;
+                cashFlowsA.push({ date: dt, amount: +actA });
+                cashFlowsB.push({ date: dt, amount: +actB });
+                cashFlowsC.push({ date: dt, amount: +actC });
+            }
+        });
+
         const netInvested = cumulativeDeposits - cumulativeWithdrawals;
 
         // Drawdown tracking A
@@ -1733,6 +2341,13 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
         if (peakB > 0) {
             const ddB = ((valB - peakB) / peakB) * 100;
             if (ddB < maxDdB) maxDdB = ddB;
+        }
+
+        // Drawdown tracking C (1x ungehebelt)
+        if (valC > peakC) peakC = valC;
+        if (peakC > 0) {
+            const ddC = ((valC - peakC) / peakC) * 100;
+            if (ddC < maxDdC) maxDdC = ddC;
         }
 
         timelineLabels.push(dt);
@@ -1785,28 +2400,124 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
         periodBadge.textContent = `${formatDateDE(userStartDate)} – Heute (${(tradingDates.length / 252).toFixed(1).replace('.', ',')} Jahre)`;
     }
 
-    // Downsample for Trajectory Chart (260 points)
+    // Map full daily values for precise point alignment
+    const valAMap = new Map();
+    const valBMap = new Map();
+    const valCMap = new Map();
+    const netDepositsMap = new Map();
+
+    for (let i = 0; i < timelineLabels.length; i++) {
+        const d = timelineLabels[i];
+        valAMap.set(d, Math.round(timelineValA[i]));
+        valBMap.set(d, Math.round(timelineValB[i]));
+        valCMap.set(d, Math.round(timelineValC[i]));
+        netDepositsMap.set(d, Math.round(timelineNetDeposits[i]));
+    }
+
+    // Collect all critical event dates so they are never lost in downsampling
+    const criticalDates = new Set();
+    criticalDates.add(timelineLabels[0]);
+    criticalDates.add(timelineLabels[timelineLabels.length - 1]);
+
+    for (const dt of switchEvents.keys()) criticalDates.add(dt);
+    for (const dt of depositEvents.keys()) criticalDates.add(dt);
+    for (const dt of savingEvents.keys()) criticalDates.add(dt);
+
+    // Downsample for Trajectory Chart (approx 260 base points + critical event dates)
     const step = Math.max(1, Math.floor(timelineLabels.length / 260));
-    const sampledLabels = [];
+    const sampledDatesSet = new Set(criticalDates);
+    for (let i = 0; i < timelineLabels.length; i += step) {
+        sampledDatesSet.add(timelineLabels[i]);
+    }
+    sampledDatesSet.add(timelineLabels[timelineLabels.length - 1]);
+
+    const sampledLabels = Array.from(sampledDatesSet).sort();
     const sampledValA = [];
     const sampledValB = [];
     const sampledValC = [];
     const sampledNetDeposits = [];
 
-    for (let i = 0; i < timelineLabels.length; i += step) {
-        sampledLabels.push(timelineLabels[i]);
-        sampledValA.push(Math.round(timelineValA[i]));
-        sampledValB.push(Math.round(timelineValB[i]));
-        sampledValC.push(Math.round(timelineValC[i]));
-        sampledNetDeposits.push(Math.round(timelineNetDeposits[i]));
+    const dataPointsSwitchBuyNormal = [];
+    const dataPointsSwitchBuyHover = [];
+    const dataPointsSwitchSellNormal = [];
+    const dataPointsSwitchSellHover = [];
+    const dataPointsDeposits = [];
+    const dataPointsSavings = [];
+
+    // Identify switches that are immediately adjacent in time (<= 3 calendar days apart)
+    const switchDatesList = Array.from(switchEvents.keys()).sort();
+    const collisionDates = new Set();
+    for (let i = 0; i < switchDatesList.length; i++) {
+        const d1 = new Date(switchDatesList[i]).getTime();
+        for (let j = 0; j < switchDatesList.length; j++) {
+            if (i !== j) {
+                const d2 = new Date(switchDatesList[j]).getTime();
+                const diffDays = Math.abs(d1 - d2) / (1000 * 60 * 60 * 24);
+                if (diffDays <= 3) {
+                    collisionDates.add(switchDatesList[i]);
+                    break;
+                }
+            }
+        }
     }
-    if (sampledLabels[sampledLabels.length - 1] !== timelineLabels[timelineLabels.length - 1]) {
-        sampledLabels.push(timelineLabels[timelineLabels.length - 1]);
-        sampledValA.push(Math.round(timelineValA[timelineValA.length - 1]));
-        sampledValB.push(Math.round(timelineValB[timelineValB.length - 1]));
-        sampledValC.push(Math.round(timelineValC[timelineValC.length - 1]));
-        sampledNetDeposits.push(Math.round(timelineNetDeposits[timelineNetDeposits.length - 1]));
-    }
+
+    const maxValAcrossChart = Math.max(...timelineValA, initialCapital);
+
+    sampledLabels.forEach(dt => {
+        const vA = valAMap.get(dt) !== undefined ? valAMap.get(dt) : null;
+        const vB = valBMap.get(dt) !== undefined ? valBMap.get(dt) : null;
+        const vC = valCMap.get(dt) !== undefined ? valCMap.get(dt) : null;
+        const vDep = netDepositsMap.get(dt) !== undefined ? netDepositsMap.get(dt) : null;
+
+        sampledValA.push(vA);
+        sampledValB.push(vB);
+        sampledValC.push(vC);
+        sampledNetDeposits.push(vDep);
+
+        // NORMAL VIEW: ALL triangles hug the curve line directly (~1px offset)
+        const deltaNormal = vA !== null ? Math.max(50, Math.round(maxValAcrossChart * 0.0035)) : 0;
+        // HOVER VIEW: ONLY for the rare direct collisions (switches <= 3 days apart), expand separation to ~7px
+        const isCollision = collisionDates.has(dt);
+        const deltaHover = vA !== null ? (
+            isCollision ? Math.round(maxValAcrossChart * 0.022) : deltaNormal
+        ) : 0;
+
+        const sw = switchEvents.get(dt);
+        if (sw && sw.targetState === 'LEVERAGE') {
+            dataPointsSwitchBuyNormal.push(vA !== null ? vA + deltaNormal : null);
+            dataPointsSwitchBuyHover.push(vA !== null ? vA + deltaHover : null);
+        } else {
+            dataPointsSwitchBuyNormal.push(null);
+            dataPointsSwitchBuyHover.push(null);
+        }
+
+        if (sw && sw.targetState === 'MONEY_MARKET') {
+            dataPointsSwitchSellNormal.push(vA !== null ? Math.max(0, vA - deltaNormal) : null);
+            dataPointsSwitchSellHover.push(vA !== null ? Math.max(0, vA - deltaHover) : null);
+        } else {
+            dataPointsSwitchSellNormal.push(null);
+            dataPointsSwitchSellHover.push(null);
+        }
+
+        if (depositEvents.has(dt)) {
+            dataPointsDeposits.push(vA);
+        } else {
+            dataPointsDeposits.push(null);
+        }
+
+        if (savingEvents.has(dt)) {
+            dataPointsSavings.push(vA);
+        } else {
+            dataPointsSavings.push(null);
+        }
+    });
+
+    backtestSwitchDataVariants = {
+        normalBuy: dataPointsSwitchBuyNormal,
+        hoverBuy: dataPointsSwitchBuyHover,
+        normalSell: dataPointsSwitchSellNormal,
+        hoverSell: dataPointsSwitchSellHover
+    };
 
     // Chart Datasets
     const datasets = [
@@ -1860,11 +2571,99 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
         tension: 0
     });
 
+    // 1. Sparplankäufe (drawn first / underneath event markers)
+    datasets.push({
+        id: 'event_savings',
+        eventCategory: 'savings',
+        label: '● Sparplankäufe',
+        data: dataPointsSavings,
+        showLine: false,
+        pointRadius: 3.5,
+        pointHoverRadius: 6.0,
+        pointStyle: 'circle',
+        pointBackgroundColor: '#06B6D4',
+        pointBorderColor: '#FFFFFF',
+        pointBorderWidth: 1.5,
+        hideFromLegend: true,
+        hidden: !backtestEventsVisibility.savings
+    });
+
+    // 2. Einmalzahlungen (drawn above savings)
+    datasets.push({
+        id: 'event_deposits',
+        eventCategory: 'deposits',
+        label: '💎 Einmalzahlungen',
+        data: dataPointsDeposits,
+        showLine: false,
+        pointRadius: 7.5,
+        pointHoverRadius: 12,
+        pointStyle: 'rectRot',
+        pointBackgroundColor: '#F59E0B',
+        pointBorderColor: '#FFFFFF',
+        pointBorderWidth: 2.0,
+        hideFromLegend: true,
+        hidden: !backtestEventsVisibility.deposits
+    });
+
+    // 3. Umschichtungen (drawn on top of all events so no circle/diamond can ever obscure the triangles!)
+    if (leverageUseSma) {
+        datasets.push({
+            id: 'event_switches_sell',
+            eventCategory: 'switches',
+            label: '🔴 Umschichtung in Geldmarkt',
+            data: dataPointsSwitchSellNormal,
+            showLine: false,
+            pointRadius: 9.0,
+            pointHoverRadius: 14.5,
+            pointStyle: 'triangle',
+            pointRotation: 180,
+            pointBackgroundColor: '#EF4444',
+            pointBorderColor: '#FFFFFF',
+            pointBorderWidth: 2.5,
+            hideFromLegend: true,
+            hidden: !backtestEventsVisibility.switches
+        });
+
+        datasets.push({
+            id: 'event_switches_buy',
+            eventCategory: 'switches',
+            label: '🟢 Umschichtung in Hebel-ETF',
+            data: dataPointsSwitchBuyNormal,
+            showLine: false,
+            pointRadius: 9.0,
+            pointHoverRadius: 14.5,
+            pointStyle: 'triangle',
+            pointBackgroundColor: '#10B981',
+            pointBorderColor: '#FFFFFF',
+            pointBorderWidth: 2.5,
+            hideFromLegend: true,
+            hidden: !backtestEventsVisibility.switches
+        });
+    }
+
+    if (wealthZoomController) {
+        wealthZoomController.reset(true);
+    }
+
     if (trajectoryChartInstance) {
         trajectoryChartInstance.data.labels = sampledLabels;
         trajectoryChartInstance.data.datasets = datasets;
         trajectoryChartInstance.update('none');
     }
+
+    const btnSwitches = document.getElementById('btnToggleEventSwitches');
+    if (btnSwitches) {
+        btnSwitches.style.display = leverageUseSma ? 'inline-flex' : 'none';
+    }
+
+    // Update Counter Badges in Event Toolbar
+    const countSwitchesEl = document.getElementById('countEventSwitches');
+    const countDepositsEl = document.getElementById('countEventDeposits');
+    const countSavingsEl = document.getElementById('countEventSavings');
+
+    if (countSwitchesEl) countSwitchesEl.textContent = switchesCount;
+    if (countDepositsEl) countDepositsEl.textContent = (initialCapital > 0 ? 1 : 0) + extraDepositsCount;
+    if (countSavingsEl) countSavingsEl.textContent = monthlySavingsCount;
 
     // Summary Table
     const totalDays = daysInLeverage + daysInMoneyMarket;
@@ -1960,7 +2759,10 @@ function runLeverageBacktest(historyData, inpStart, initialCapital, monthlyRate,
                 <td style="font-weight: 700; color: var(--red-trend);">${maxDdA.toFixed(1).replace('.', ',')} %</td>
                 <td>
                     Größter zwischenzeitlicher Verlust vom jeweiligen Höchststand.
-                    ${leverageUseSma ? `<br><span style="font-size: 0.72rem; color: var(--text-muted);">Vergleich Hebel Buy &amp; Hold: <strong>${maxDdB.toFixed(1).replace('.', ',')} %</strong></span>` : ''}
+                    <br><span style="font-size: 0.72rem; color: var(--text-muted);">
+                        Vergleich: 1x ungehebelt: <strong>${maxDdC.toFixed(1).replace('.', ',')} %</strong>
+                        ${leverageUseSma ? ` &bull; Hebel Buy &amp; Hold: <strong>${maxDdB.toFixed(1).replace('.', ',')} %</strong>` : ''}
+                    </span>
                 </td>
             </tr>
         `;
@@ -2125,6 +2927,10 @@ function runHistoricalBacktest() {
 
     // Day 0: Execute Initial Capital
     const day0 = tradingDates[0];
+    const depositEvents = new Map();
+    const savingEvents = new Map();
+    backtestActiveEventDetails.clear();
+
     if (initialCapital > 0) {
         assetIds.forEach(id => {
             const p = getPrice(id, day0);
@@ -2133,6 +2939,14 @@ function runHistoricalBacktest() {
         });
         cumulativeDeposits += initialCapital;
         cashFlows.push({ date: day0, amount: -initialCapital });
+        depositEvents.set(day0, { type: 'initial', amount: initialCapital });
+        backtestActiveEventDetails.set(day0 + '_deposit', {
+            category: 'deposits',
+            type: 'initial',
+            amount: initialCapital,
+            val: Math.round(initialCapital),
+            netInvested: Math.round(initialCapital)
+        });
     }
 
     // Iterate through trading dates
@@ -2152,6 +2966,14 @@ function runHistoricalBacktest() {
             totalMonthlySavings += monthlyRate;
             monthlySavingsCount++;
             cashFlows.push({ date: dt, amount: -monthlyRate });
+            savingEvents.set(dt, { type: 'monthly', amount: monthlyRate });
+            backtestActiveEventDetails.set(dt + '_saving', {
+                category: 'savings',
+                type: 'monthly',
+                amount: monthlyRate,
+                val: Math.round(cumulativeDeposits), // updated below if needed
+                netInvested: Math.round(cumulativeDeposits)
+            });
         }
         lastKnownMonth = currentMonth;
 
@@ -2167,6 +2989,16 @@ function runHistoricalBacktest() {
                 totalExtraDeposits += dep.amount;
                 extraDepositsCount++;
                 cashFlows.push({ date: dt, amount: -dep.amount });
+                const existing = depositEvents.get(dt) ? depositEvents.get(dt).amount : 0;
+                const totalAmt = existing + dep.amount;
+                depositEvents.set(dt, { type: 'extra', amount: totalAmt });
+                backtestActiveEventDetails.set(dt + '_deposit', {
+                    category: 'deposits',
+                    type: 'extra',
+                    amount: totalAmt,
+                    val: Math.round(cumulativeDeposits),
+                    netInvested: Math.round(cumulativeDeposits)
+                });
             }
         });
 
@@ -2186,6 +3018,11 @@ function runHistoricalBacktest() {
                 }
             }
         });
+
+        // Deduct 0.07% p.a. ETF TER for S&P 500 index replication (mirroring real UCITS ETFs like iShares SXR8)
+        if (idx > 0 && units['sp500'] > 0) {
+            units['sp500'] *= (1.0 - (0.0007 / 252.0));
+        }
 
         // Calculate portfolio value on date dt
         let currentPortfolioVal = 0;
@@ -2257,22 +3094,55 @@ function runHistoricalBacktest() {
         periodBadge.textContent = `${formatDateDE(userStartDate)} – Heute (${(tradingDates.length / 252).toFixed(1).replace('.', ',')} Jahre)`;
     }
 
-    // Downsample for Trajectory Chart (250 points)
+    // Map full daily values for precise point alignment
+    const valMap = new Map();
+    const netDepositsMap = new Map();
+
+    for (let i = 0; i < timelineLabels.length; i++) {
+        const d = timelineLabels[i];
+        valMap.set(d, Math.round(timelinePortfolioValue[i]));
+        netDepositsMap.set(d, Math.round(timelineNetDeposits[i]));
+    }
+
+    // Collect all critical event dates so they are never lost in downsampling
+    const criticalDates = new Set();
+    criticalDates.add(timelineLabels[0]);
+    criticalDates.add(timelineLabels[timelineLabels.length - 1]);
+
+    for (const dt of depositEvents.keys()) criticalDates.add(dt);
+    for (const dt of savingEvents.keys()) criticalDates.add(dt);
+
+    // Downsample for Trajectory Chart (approx 260 base points + critical event dates)
     const step = Math.max(1, Math.floor(timelineLabels.length / 260));
-    const sampledLabels = [];
+    const sampledDatesSet = new Set(criticalDates);
+    for (let i = 0; i < timelineLabels.length; i += step) {
+        sampledDatesSet.add(timelineLabels[i]);
+    }
+    sampledDatesSet.add(timelineLabels[timelineLabels.length - 1]);
+
+    const sampledLabels = Array.from(sampledDatesSet).sort();
     const sampledDepotVals = [];
     const sampledNetDeposits = [];
+    const dataPointsDeposits = [];
+    const dataPointsSavings = [];
 
-    for (let i = 0; i < timelineLabels.length; i += step) {
-        sampledLabels.push(timelineLabels[i]);
-        sampledDepotVals.push(Math.round(timelinePortfolioValue[i]));
-        sampledNetDeposits.push(Math.round(timelineNetDeposits[i]));
-    }
-    if (sampledLabels[sampledLabels.length - 1] !== timelineLabels[timelineLabels.length - 1]) {
-        sampledLabels.push(timelineLabels[timelineLabels.length - 1]);
-        sampledDepotVals.push(Math.round(timelinePortfolioValue[timelinePortfolioValue.length - 1]));
-        sampledNetDeposits.push(Math.round(timelineNetDeposits[timelineNetDeposits.length - 1]));
-    }
+    sampledLabels.forEach(dt => {
+        const val = valMap.get(dt) !== undefined ? valMap.get(dt) : null;
+        sampledDepotVals.push(val);
+        sampledNetDeposits.push(netDepositsMap.get(dt) !== undefined ? netDepositsMap.get(dt) : null);
+
+        if (depositEvents.has(dt)) {
+            dataPointsDeposits.push(val);
+        } else {
+            dataPointsDeposits.push(null);
+        }
+
+        if (savingEvents.has(dt)) {
+            dataPointsSavings.push(val);
+        } else {
+            dataPointsSavings.push(null);
+        }
+    });
 
     if (trajectoryChartInstance) {
         trajectoryChartInstance.data.labels = sampledLabels;
@@ -2297,10 +3167,57 @@ function runHistoricalBacktest() {
                 borderWidth: 2.0,
                 pointRadius: 0,
                 tension: 0.05
+            },
+            {
+                id: 'event_deposits',
+                eventCategory: 'deposits',
+                label: '💎 Einmalzahlungen',
+                data: dataPointsDeposits,
+                showLine: false,
+                pointRadius: 7.5,
+                pointHoverRadius: 12,
+                pointStyle: 'rectRot',
+                pointBackgroundColor: '#F59E0B',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2.5,
+                hideFromLegend: true,
+                hidden: !backtestEventsVisibility.deposits
+            },
+            {
+                id: 'event_savings',
+                eventCategory: 'savings',
+                label: '● Sparplankäufe',
+                data: dataPointsSavings,
+                showLine: false,
+                pointRadius: 4.0,
+                pointHoverRadius: 6.0,
+                pointStyle: 'circle',
+                pointBackgroundColor: '#06B6D4',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 1.5,
+                hideFromLegend: true,
+                hidden: !backtestEventsVisibility.savings
             }
         ];
+        if (wealthZoomController) {
+            wealthZoomController.reset(true);
+        }
         trajectoryChartInstance.update();
     }
+
+    const btnSwitches = document.getElementById('btnToggleEventSwitches');
+    if (btnSwitches) {
+        btnSwitches.style.display = 'none';
+    }
+
+    // Update Counter Badges in Event Toolbar
+    const countSwitchesEl = document.getElementById('countEventSwitches');
+    const countDepositsEl = document.getElementById('countEventDeposits');
+    const countSavingsEl = document.getElementById('countEventSavings');
+
+    if (countSwitchesEl) countSwitchesEl.textContent = '0';
+    if (countDepositsEl) countDepositsEl.textContent = (initialCapital > 0 ? 1 : 0) + extraDepositsCount;
+    if (countSavingsEl) countSavingsEl.textContent = monthlySavingsCount;
 
     // Populate Detailed Cash-Flow Breakdown Table
     const summaryTbody = document.getElementById('backtestSummaryTableBody');

@@ -77,15 +77,15 @@ ASSETS_METADATA = [
     {
         "id": "sp500",
         "name": "S&P 500",
-        "fullName": "iShares Core S&P 500 UCITS ETF (EUR)",
-        "ticker": "SXR8.DE",
-        "tvSymbol": "XETR:SXR8",
+        "fullName": "S&P 500 Index (^GSPC)",
+        "ticker": "^GSPC",
+        "tvSymbol": "SP:SPX",
         "category": "USA Leitmarkt",
-        "tag": "US-Leitindex (EUR)",
-        "isin": "IE00B5BMR087",
-        "wkn": "A0YEDG",
-        "ter": "0,07 % p.a.",
-        "description": "Führender US-Leitindex der 500 wertvollsten Unternehmen in Euro inkl. automatischer Dividenden-Reinvestition (Total Return). Historie bis 1970 zurückgerechnet."
+        "tag": "US-Leitindex",
+        "isin": "US78378X1072",
+        "wkn": "A0AET0",
+        "ter": "0,00 % p.a. (Index)",
+        "description": "Offizieller US-Leitindex der 500 führenden Unternehmen (^GSPC). Weltweite Referenz für die 200-Tage-Linie (SMA 200) und Hebel-Strategien. Historie lückenlos ab 1970."
     },
     {
         "id": "euro_geldmarkt",
@@ -202,26 +202,11 @@ def fetch_raw_ticker(ticker):
     return deduped, meta
 
 def fetch_ticker_data(ticker):
-    if ticker == 'SXR8.DE':
-        # Primary: SXR8.DE (iShares Core S&P 500 UCITS ETF in EUR)
-        series_etf, meta = fetch_raw_ticker('SXR8.DE')
-        meta['currency'] = 'EUR'
-        # Backfill pre-2010 with ^GSPC scaled to ETF price on inception date
-        try:
-            series_spx, _ = fetch_raw_ticker('^GSPC')
-            spx_dict = dict(series_spx)
-            first_dt, first_val = series_etf[0]
-            if first_dt in spx_dict:
-                scale = first_val / spx_dict[first_dt]
-                stitched = []
-                for dt, p in series_spx:
-                    if dt < first_dt:
-                        stitched.append([dt, round(p * scale, 4)])
-                stitched.extend(series_etf)
-                return stitched, meta
-        except Exception as e:
-            print(f" (backfill failed: {e})", end="")
-        return series_etf, meta
+    if ticker == '^GSPC':
+        series, meta = fetch_raw_ticker('^GSPC')
+        meta['currency'] = 'USD'
+        series_1970 = [pt for pt in series if pt[0] >= '1970-01-01']
+        return series_1970, meta
     elif ticker == 'XEON.DE':
         # Primary: XEON.DE (Xtrackers II EUR Overnight Rate Swap UCITS ETF)
         series_etf, meta = fetch_raw_ticker('XEON.DE')
@@ -436,6 +421,9 @@ def main():
         try:
             series, meta = fetch_ticker_data(ticker)
             metrics = compute_metrics(series)
+            if asset_id == 'euro_geldmarkt':
+                metrics['sharpeRatio'] = None
+                metrics['sortinoRatio'] = None
             currency = meta.get('currency', 'EUR')
             
             asset_payload = {
