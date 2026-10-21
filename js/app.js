@@ -410,11 +410,30 @@ function updateSelectionCounter() {
     const counter = document.getElementById('selectionCounter');
     const badge = document.getElementById('indicesCountBadge');
     const count = activeBacktestAssets.size;
+    const curSymbol = currentCurrency === 'USD' ? '$' : '€';
     if (counter) {
-        counter.textContent = `${count} von 11 Indizes im Chart aktiv`;
+        if (count === 1) {
+            counter.innerHTML = `${count} von 11 Indizes im Chart aktiv <span style="font-size: 0.76rem; font-weight: normal; color: var(--text-muted); margin-left: 6px;">(Nominalkurs in ${curSymbol})</span>`;
+        } else {
+            counter.innerHTML = `${count} von 11 Indizes im Chart aktiv <span style="font-size: 0.76rem; font-weight: 600; color: var(--gold-dark); margin-left: 6px;">• Vergleichsbasis: 1.000 ${curSymbol} Startkapital (Startet bei 0 ${curSymbol})</span>`;
+        }
     }
     if (badge) {
         badge.textContent = `${count} im Chart aktiv`;
+    }
+}
+
+function updateModeButtonLabels() {
+    const btnModePrice = document.getElementById('btnModePrice');
+    if (!btnModePrice) return;
+    const isSingle = activeBacktestAssets.size === 1;
+    const curSymbol = currentCurrency === 'USD' ? '$' : '€';
+    if (isSingle) {
+        btnModePrice.textContent = `Kurs in ${curSymbol}`;
+        btnModePrice.title = `Nominaler Kurswert in ${curSymbol}`;
+    } else {
+        btnModePrice.textContent = `Wertzuwachs in ${curSymbol} (Start 0 ${curSymbol})`;
+        btnModePrice.title = `Wertentwicklung bezogen auf 1.000 ${curSymbol} Startinvestition (Startet bei 0 ${curSymbol})`;
     }
 }
 
@@ -658,11 +677,6 @@ function initCurrencyPills() {
             pill.classList.add('active');
             currentCurrency = pill.getAttribute('data-curr'); // 'EUR' or 'USD'
 
-            // Update mode button label to reflect selected currency
-            if (btnModePrice) {
-                btnModePrice.textContent = (currentCurrency === 'USD') ? 'Kurs in $' : 'Kurs in €';
-            }
-
             // If user clicked currency while in drawdown mode, switch to price mode to show the currency chart
             if (currentChartMode !== 'price') {
                 const modePills = document.querySelectorAll('.mode-pill');
@@ -671,6 +685,8 @@ function initCurrencyPills() {
                 currentChartMode = 'price';
             }
 
+            updateModeButtonLabels();
+            updateSelectionCounter();
             updateHistoricalChart();
             renderInstrumentDetails(getAssetById(focusedAssetId));
         });
@@ -826,14 +842,31 @@ function initHistoricalChart() {
 
                             if (currentChartMode === 'drawdown') {
                                 return ` ${context.dataset.label}: ${val.toFixed(2)} % Drawdown`;
-                            } else {
-                                const cur = (currentCurrency === 'USD' || context.dataset.currency === 'USD') ? '$' : '€';
+                            }
+
+                            const isSingle = (historicalChartInstance && historicalChartInstance.data.datasets.length === 1);
+                            const cur = (currentCurrency === 'USD' || context.dataset.currency === 'USD') ? '$' : '€';
+
+                            if (isSingle) {
                                 if (val >= 1000) {
                                     return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
                                 } else {
                                     return ` ${context.dataset.label}: ${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} ${cur}`;
                                 }
+                            } else {
+                                const sign = val >= 0 ? '+' : '';
+                                const pct = (val / 10.0).toFixed(2);
+                                const pctSign = val >= 0 ? '+' : '';
+                                return ` ${context.dataset.label}: ${sign}${val.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur} (${pctSign}${pct} %)`;
                             }
+                        },
+                        footer: function(tooltipItems) {
+                            const isSingle = (historicalChartInstance && historicalChartInstance.data.datasets.length === 1);
+                            if (!isSingle && currentChartMode === 'price') {
+                                const cur = currentCurrency === 'USD' ? '$' : '€';
+                                return `Basis: 1.000 ${cur} Startkapital (Start bei 0 ${cur})`;
+                            }
+                            return '';
                         }
                     }
                 }
@@ -848,14 +881,33 @@ function initHistoricalChart() {
                     }
                 },
                 y: {
-                    grid: { color: 'rgba(0, 0, 0, 0.06)' },
+                    grid: {
+                        color: function(context) {
+                            if (context.tick && context.tick.value === 0) {
+                                return 'rgba(10, 25, 47, 0.35)'; // Darker zero baseline
+                            }
+                            return 'rgba(0, 0, 0, 0.06)';
+                        },
+                        lineWidth: function(context) {
+                            if (context.tick && context.tick.value === 0) {
+                                return 1.8;
+                            }
+                            return 1.0;
+                        }
+                    },
                     ticks: {
                         color: '#0A192F',
                         font: { size: 11, weight: 'bold' },
                         callback: function(value) {
                             if (currentChartMode === 'drawdown') return `${value} %`;
+                            const isSingle = (historicalChartInstance && historicalChartInstance.data.datasets.length === 1);
                             const cur = currentCurrency === 'USD' ? '$' : '€';
-                            return value >= 1000 ? `${Math.round(value/1000).toLocaleString('de-DE')}k ${cur}` : `${value.toLocaleString('de-DE')} ${cur}`;
+                            if (isSingle) {
+                                return value >= 1000 ? `${Math.round(value/1000).toLocaleString('de-DE')}k ${cur}` : `${value.toLocaleString('de-DE')} ${cur}`;
+                            } else {
+                                const sign = value > 0 ? '+' : '';
+                                return `${sign}${value.toLocaleString('de-DE')} ${cur}`;
+                            }
                         }
                     }
                 }
@@ -931,6 +983,9 @@ function updateHistoricalChart() {
         series.forEach(pt => priceMap.set(pt[0], pt[1]));
 
         const firstDate = series[0][0];
+        const startRate = (currentCurrency === 'USD') ? getFxRate(firstDate) : 1.0;
+        const startVal = series[0][1] * startRate;
+
         let peak = -Infinity;
         let lastKnownEur = null;
 
@@ -955,8 +1010,13 @@ function updateHistoricalChart() {
             if (currentChartMode === 'drawdown') {
                 const dd = peak > 0 ? ((curVal - peak) / peak) * 100 : 0;
                 dataPoints.push(Math.round(dd * 100) / 100);
-            } else {
+            } else if (isSingleAsset) {
                 dataPoints.push(Math.round(curVal * 100) / 100);
+            } else {
+                // Multiple assets: Net gain/loss in € or $ based on 1.000 starting capital (starts at 0 €)
+                const perf = startVal > 0 ? ((curVal - startVal) / startVal) : 0;
+                const gain = perf * 1000.0;
+                dataPoints.push(Math.round(gain * 100) / 100);
             }
         });
 
@@ -991,6 +1051,9 @@ function updateHistoricalChart() {
     historicalChartInstance.data.labels = sampledDates;
     historicalChartInstance.data.datasets = datasets;
     historicalChartInstance.update();
+
+    updateModeButtonLabels();
+    updateSelectionCounter();
 }
 
 /* ==========================================================================
